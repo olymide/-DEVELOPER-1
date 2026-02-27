@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OP_NET Token Studio — Bitcoin Layer 1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --btc: #F7931A; --op: #FF4D00;
+    --bg: #070A0E; --surface: #0D1117; --surface2: #131A24; --surface3: #1A2436;
+    --border: #1C2A3A; --border2: #263548;
+    --text: #E2EAF4; --text-dim: #6E8BA5; --text-muted: #344E66;
+    --green: #00D26A; --red: #FF3B3B; --yellow: #FFD60A; --cyan: #00C8FF;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(247,147,26,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(247,147,26,.025) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;z-index:0}
+  .orb{position:fixed;border-radius:50%;filter:blur(130px);pointer-events:none;z-index:0}
+  .orb1{width:500px;height:500px;background:var(--btc);opacity:.07;top:-180px;left:-180px;animation:drift 22s ease-in-out infinite alternate}
+  .orb2{width:350px;height:350px;background:var(--op);opacity:.06;bottom:-80px;right:-80px;animation:drift 28s ease-in-out infinite alternate-reverse}
+  @keyframes drift{from{transform:translate(0,0)}to{transform:translate(50px,35px)}}
+  #app{position:relative;z-index:1}
+
+  /* HEADER */
+  header{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;border-bottom:1px solid var(--border);background:rgba(7,10,14,.88);backdrop-filter:blur(20px);position:sticky;top:0;z-index:100}
+  .logo{display:flex;align-items:center;gap:10px}
+  .logo-mark{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,var(--btc),var(--op));display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;font-weight:700;font-size:16px;color:#000}
+  .logo-name{font-size:17px;font-weight:800;letter-spacing:-.5px}
+  .logo-name span{color:var(--btc)}
+  .header-right{display:flex;align-items:center;gap:10px}
+  .net-badge{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;background:rgba(247,147,26,.08);border:1px solid rgba(247,147,26,.2);font-family:'Space Mono',monospace;font-size:11px;color:var(--btc)}
+  .pulse{width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 2s infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+  .wallet-btn{display:flex;align-items:center;gap:8px;padding:8px 16px;border-radius:8px;border:none;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all .2s;background:linear-gradient(135deg,var(--btc),var(--op));color:#000}
+  .wallet-btn:hover{opacity:.85;transform:translateY(-1px)}
+  .wallet-btn.dc{background:rgba(255,59,59,.1);border:1px solid rgba(255,59,59,.3);color:var(--red)}
+  .wallet-btn.dc:hover{background:rgba(255,59,59,.2)}
+
+  /* LAYOUT */
+  main{display:grid;grid-template-columns:220px 1fr;min-height:calc(100vh - 61px)}
+  aside{border-right:1px solid var(--border);padding:20px 0;background:rgba(13,17,23,.4)}
+  .nav-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);padding:8px 16px 4px;font-family:'Space Mono',monospace}
+  .nav-item{display:flex;align-items:center;gap:9px;padding:9px 14px;margin:2px 8px;border-radius:7px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text-dim);transition:all .15s;border:1px solid transparent}
+  .nav-item:hover{background:var(--surface2);color:var(--text);border-color:var(--border)}
+  .nav-item.active{background:rgba(247,147,26,.1);color:var(--btc);border-color:rgba(247,147,26,.22)}
+  .nav-item .icon{font-size:14px;width:18px;text-align:center}
+  .content{padding:28px 32px;overflow-y:auto}
+
+  /* PAGE HEADER */
+  .page-header{margin-bottom:24px}
+  .page-title{font-size:26px;font-weight:800;letter-spacing:-1px;line-height:1.1}
+  .page-title span{color:var(--btc)}
+  .page-sub{color:var(--text-dim);font-size:13px;margin-top:5px;font-family:'Space Mono',monospace}
+
+  /* CARDS */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:18px}
+  .card:hover{border-color:var(--border2)}
+  .card-title{font-size:14px;font-weight:700;display:flex;align-items:center;gap:7px;margin-bottom:16px}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--btc);flex-shrink:0}
+
+  /* FORM */
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .fg{margin-bottom:14px}
+  .fg.full{grid-column:1/-1}
+  label{display:block;font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;font-family:'Space Mono',monospace}
+  input,textarea,select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:9px 12px;color:var(--text);font-family:'Space Mono',monospace;font-size:12px;outline:none;transition:border-color .2s}
+  input:focus,textarea:focus,select:focus{border-color:var(--btc);background:var(--surface3)}
+  input::placeholder,textarea::placeholder{color:var(--text-muted)}
+  textarea{resize:vertical;min-height:70px;line-height:1.5}
+  select option{background:var(--surface2)}
+  input[readonly]{opacity:.6;cursor:default}
+
+  /* BUTTONS */
+  .btn{display:inline-flex;align-items:center;gap:7px;padding:10px 20px;border-radius:8px;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;border:none;transition:all .2s}
+  .btn-p{background:linear-gradient(135deg,var(--btc),var(--op));color:#000}
+  .btn-p:hover{opacity:.85;transform:translateY(-1px);box-shadow:0 6px 20px rgba(247,147,26,.25)}
+  .btn-p:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+  .btn-s{background:var(--surface2);border:1px solid var(--border2);color:var(--text)}
+  .btn-s:hover{border-color:var(--btc);color:var(--btc)}
+  .btn-g{background:transparent;border:1px solid var(--border);color:var(--text-dim)}
+  .btn-g:hover{border-color:var(--border2);color:var(--text)}
+  .btn-sm{padding:6px 12px;font-size:11px}
+
+  /* ALERTS */
+  .alert{padding:11px 14px;border-radius:8px;font-size:12px;display:flex;align-items:flex-start;gap:8px;margin-bottom:14px;font-family:'Space Mono',monospace;line-height:1.5}
+  .a-info{background:rgba(0,200,255,.05);border:1px solid rgba(0,200,255,.18);color:var(--cyan)}
+  .a-warn{background:rgba(255,214,10,.05);border:1px solid rgba(255,214,10,.18);color:var(--yellow)}
+  .a-ok{background:rgba(0,210,106,.05);border:1px solid rgba(0,210,106,.18);color:var(--green)}
+  .a-err{background:rgba(255,59,59,.05);border:1px solid rgba(255,59,59,.18);color:var(--red)}
+
+  /* RESPONSE BOX */
+  .res{background:#040710;border:1px solid var(--border2);border-radius:8px;padding:14px;font-family:'Space Mono',monospace;font-size:11px;color:var(--green);min-height:80px;white-space:pre-wrap;word-break:break-all;line-height:1.7}
+  .res.err{color:var(--red)} .res.pend{color:var(--yellow)}
+
+  /* TWO COL */
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+
+  /* GATE */
+  #gate{position:fixed;inset:0;z-index:200;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:22px;text-align:center;padding:20px}
+  #gate.hidden{display:none}
+  .gate-icon{font-size:54px;margin-bottom:4px}
+  .gate-title{font-size:30px;font-weight:800;letter-spacing:-1px}
+  .gate-title span{color:var(--btc)}
+  .gate-sub{color:var(--text-dim);font-family:'Space Mono',monospace;font-size:12px;max-width:400px;line-height:1.7}
+  .gate-connect{padding:13px 32px;font-size:15px;border-radius:10px;background:linear-gradient(135deg,var(--btc),var(--op));color:#000;border:none;font-family:'Syne',sans-serif;font-weight:800;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:10px}
+  .gate-connect:hover{opacity:.85;transform:translateY(-2px);box-shadow:0 10px 30px rgba(247,147,26,.3)}
+  .gate-connect:disabled{opacity:.5;cursor:not-allowed;transform:none}
+  .gate-link{font-family:'Space Mono',monospace;font-size:11px;color:var(--text-muted)}
+  .gate-link a{color:var(--cyan);text-decoration:none}
+  .gate-link a:hover{text-decoration:underline}
+
+  /* SECTION */
+  .section{display:none} .section.active{display:block}
+  .divider{height:1px;background:var(--border);margin:16px 0}
+
+  /* STATS */
+  .stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px;position:relative;overflow:hidden}
+  .stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--btc),transparent)}
+  .stat-lbl{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;font-family:'Space Mono',monospace;margin-bottom:7px}
+  .stat-val{font-size:17px;font-weight:800;font-family:'Space Mono',monospace;word-break:break-all}
+  .stat-val.green{color:var(--green)} .stat-val.cyan{color:var(--cyan)}
+
+  /* BADGE */
+  .badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:4px;font-size:10px;font-family:'Space Mono',monospace;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+  .b-ok{background:rgba(0,210,106,.1);color:var(--green);border:1px solid rgba(0,210,106,.2)}
+  .b-pend{background:rgba(255,214,10,.1);color:var(--yellow);border:1px solid rgba(255,214,10,.2)}
+  .b-info{background:rgba(0,200,255,.1);color:var(--cyan);border:1px solid rgba(0,200,255,.2)}
+
+  /* TABLE */
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{text-align:left;padding:8px 10px;font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);font-family:'Space Mono',monospace}
+  td{padding:10px 10px;border-bottom:1px solid var(--border);color:var(--text-dim);font-family:'Space Mono',monospace;font-size:11px}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:rgba(255,255,255,.015);color:var(--text)}
+  .tx-hash{color:var(--cyan)}
+
+  /* SPINNER */
+  .sp{width:14px;height:14px;border:2px solid rgba(247,147,26,.2);border-top-color:var(--btc);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* TOAST */
+  #toasts{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+  .toast{padding:11px 16px;border-radius:8px;font-size:12px;font-family:'Space Mono',monospace;display:flex;align-items:center;gap:8px;max-width:340px;animation:tin .3s ease}
+  .t-ok{background:var(--surface2);border:1px solid var(--green);color:var(--green)}
+  .t-err{background:var(--surface2);border:1px solid var(--red);color:var(--red)}
+  .t-info{background:var(--surface2);border:1px solid var(--cyan);color:var(--cyan)}
+  @keyframes tin{from{transform:translateX(80px);opacity:0}to{transform:translateX(0);opacity:1}}
+
+  /* TABS */
+  .tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:20px}
+  .tab{padding:9px 16px;font-size:12px;font-weight:600;color:var(--text-dim);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s}
+  .tab:hover{color:var(--text)} .tab.active{color:var(--btc);border-bottom-color:var(--btc)}
+  .tp{display:none} .tp.active{display:block}
+
+  /* LOG */
+  .log{background:#040710;border:1px solid var(--border2);border-radius:8px;padding:14px;font-family:'Space Mono',monospace;font-size:11px;line-height:1.8;overflow-y:auto;max-height:220px}
+  .li{color:var(--cyan)} .lo{color:var(--green)} .lw{color:var(--yellow)} .le{color:var(--red)} .ld{color:var(--btc)}
+
+  .addr-link{color:var(--cyan);font-family:'Space Mono',monospace;font-size:11px;cursor:pointer}
+  .addr-link:hover{text-decoration:underline}
+  .empty{text-align:center;padding:36px 20px;color:var(--text-muted);font-family:'Space Mono',monospace;font-size:12px}
+  .empty-i{font-size:30px;margin-bottom:10px}
+
+  ::-webkit-scrollbar{width:5px} ::-webkit-scrollbar-track{background:var(--bg)} ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px} ::-webkit-scrollbar-thumb:hover{background:var(--btc)}
+</style>
+</head>
+<body>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+
+<!-- WALLET GATE -->
+<div id="gate">
+  <div>
+    <div class="gate-icon">⬡</div>
+    <div class="gate-title">OP_NET <span>Token Studio</span></div>
+  </div>
+  <div class="gate-sub">Deploy, mint, and manage OP_20 tokens on Bitcoin Layer 1 Testnet.<br>Connect your OP_WALLET browser extension to continue.</div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
+    <button class="gate-connect" id="gateBtn" onclick="connectWallet()">
+      <span id="gateSp" class="sp" style="display:none"></span>
+      <span id="gateTxt">🔗 Connect OP_WALLET</span>
+    </button>
+    <div class="gate-link">No OP_WALLET? <a href="https://chromewebstore.google.com/detail/opwallet/pmbjpcmaaladnfpacpmhmnfmpklgbdjb" target="_blank">Install Chrome Extension →</a></div>
+    <div id="gateErr" class="alert a-err" style="display:none;max-width:380px"></div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+  <header>
+    <div class="logo">
+      <div class="logo-mark">₿</div>
+      <div class="logo-name">OP<span>_NET</span> Studio</div>
+    </div>
+    <div class="header-right">
+      <div class="net-badge"><span class="pulse"></span><span id="netLabel">—</span></div>
+      <span id="hdrAddr" style="font-family:'Space Mono',monospace;font-size:11px;color:var(--text-dim)"></span>
+      <button class="wallet-btn dc btn-sm" onclick="disconnectWallet()">Disconnect</button>
+    </div>
+  </header>
+
+  <main>
+    <aside>
+      <div class="nav-label">Overview</div>
+      <div class="nav-item active" data-s="dash" onclick="nav(this)"><span class="icon">⬡</span> Dashboard</div>
+      <div class="nav-label">Token Tools</div>
+      <div class="nav-item" data-s="deploy" onclick="nav(this)"><span class="icon">🚀</span> Deploy OP_20</div>
+      <div class="nav-item" data-s="interact" onclick="nav(this)"><span class="icon">⚡</span> Interact</div>
+      <div class="nav-item" data-s="transfer" onclick="nav(this)"><span class="icon">↔</span> Transfer</div>
+      <div class="nav-label">Account</div>
+      <div class="nav-item" data-s="history" onclick="nav(this)"><span class="icon">🕐</span> History</div>
+    </aside>
+
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div id="sec-dash" class="section active">
+        <div class="page-header">
+          <div class="page-title">Welcome to <span>OP_NET</span></div>
+          <div class="page-sub">Bitcoin Layer 1 Smart Contracts · OP_20 Token Standard</div>
+        </div>
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-lbl">BTC Balance</div>
+            <div class="stat-val green" id="dBal">—</div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:4px;font-family:'Space Mono',monospace" id="dNet">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-lbl">Wallet Address</div>
+            <div class="addr-link stat-val" id="dAddr" onclick="copyAddr()" style="font-size:12px" title="Click to copy">—</div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:6px;font-family:'Space Mono',monospace">Taproot (P2TR)</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-lbl">Public Key</div>
+            <div class="stat-val cyan" id="dPub" style="font-size:10px;word-break:break-all">—</div>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="card">
+            <div class="card-title"><span class="dot"></span> Quick Actions</div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <button class="btn btn-p" onclick="nav(document.querySelector('[data-s=deploy]'))">🚀 Deploy New OP_20 Token</button>
+              <button class="btn btn-s" onclick="nav(document.querySelector('[data-s=interact]'))">⚡ Interact with Contract</button>
+              <button class="btn btn-g" onclick="nav(document.querySelector('[data-s=transfer]'))">↔ Transfer Tokens</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title"><span class="dot" style="background:var(--cyan)"></span> OP_NET Ecosystem</div>
+            <div style="font-family:'Space Mono',monospace;font-size:11px;color:var(--text-dim);line-height:2.1">
+              ⛓ Bitcoin UTXO → Contract state model<br>
+              ⬡ Taproot/Tapscript → Logic execution<br>
+              ⚙ WASM Runtime → Off-chain compute<br>
+              🪙 OP_20 Standard → Fungible tokens
+            </div>
+            <div class="divider"></div>
+            <div style="display:flex;gap:12px;flex-wrap:wrap">
+              <a href="https://docs.opnet.org" target="_blank" style="color:var(--cyan);font-family:'Space Mono',monospace;font-size:10px;text-decoration:none">📖 Docs</a>
+              <a href="https://opscan.org" target="_blank" style="color:var(--cyan);font-family:'Space Mono',monospace;font-size:10px;text-decoration:none">🔍 OP_SCAN</a>
+              <a href="https://faucet.opnet.org" target="_blank" style="color:var(--cyan);font-family:'Space Mono',monospace;font-size:10px;text-decoration:none">🚰 Faucet</a>
+              <a href="https://motoswap.org" target="_blank" style="color:var(--cyan);font-family:'Space Mono',monospace;font-size:10px;text-decoration:none">🔄 MotoSwap</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span class="dot" style="background:var(--yellow)"></span> Session Transactions</div>
+          <div id="dTxList"><div class="empty"><div class="empty-i">📭</div>No transactions yet this session</div></div>
+        </div>
+      </div>
+
+      <!-- DEPLOY -->
+      <div id="sec-deploy" class="section">
+        <div class="page-header">
+          <div class="page-title">Deploy <span>OP_20 Token</span></div>
+          <div class="page-sub">Broadcast a real OP_20 contract to Bitcoin via OP_WALLET</div>
+        </div>
+
+        <div id="balWarnBanner" class="alert a-warn" style="display:none;align-items:flex-start;gap:8px"></div>
+        <div class="alert a-warn">
+          ⚠ This deploys a real transaction to Bitcoin. Ensure you have tBTC from <a href="https://faucet.opnet.org" target="_blank" style="color:inherit">faucet.opnet.org</a>. OP_WALLET will show a confirmation popup before broadcasting.
+        </div>
+
+        <div class="two-col">
+          <div>
+            <div class="card">
+              <div class="card-title"><span class="dot"></span> Token Parameters</div>
+              <div class="form-grid">
+                <div class="fg">
+                  <label>Token Name *</label>
+                  <input id="dName" placeholder="e.g. MyToken" oninput="prevDeploy()">
+                </div>
+                <div class="fg">
+                  <label>Symbol * (max 8 chars)</label>
+                  <input id="dSym" placeholder="e.g. MTK" maxlength="8" oninput="prevDeploy()">
+                </div>
+                <div class="fg">
+                  <label>Total Supply *</label>
+                  <input type="number" id="dSupply" placeholder="e.g. 21000000" min="1" oninput="prevDeploy()">
+                </div>
+                <div class="fg">
+                  <label>Decimals</label>
+                  <input type="number" id="dDec" value="8" min="0" max="18">
+                </div>
+              </div>
+              <div class="divider"></div>
+              <div style="font-size:12px;font-weight:700;display:flex;align-items:center;gap:7px;margin-bottom:12px"><span class="dot" style="background:var(--cyan)"></span> Fee Settings</div>
+              <div class="form-grid">
+                <div class="fg">
+                  <label>Fee Rate (sat/vB)</label>
+                  <input type="number" id="dFee" value="10" min="1">
+                </div>
+                <div class="fg">
+                  <label>Priority Fee (sats)</label>
+                  <input type="number" id="dPrio" value="330" min="0">
+                </div>
+              </div>
+              <button class="btn btn-p" id="depBtn" onclick="deployToken()" style="width:100%;margin-top:4px">
+                <span id="depSp" class="sp" style="display:none"></span>
+                🚀 Deploy via OP_WALLET
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <div class="card">
+              <div class="card-title" style="margin-bottom:12px"><span class="dot" style="background:var(--green)"></span> Preview</div>
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+                <div id="pIcon" style="width:44px;height:44px;border-radius:50%;background:rgba(247,147,26,.15);color:var(--btc);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px">??</div>
+                <div>
+                  <div style="font-weight:800;font-size:16px" id="pName">—</div>
+                  <div style="font-family:'Space Mono',monospace;font-size:11px;color:var(--text-muted)" id="pSym">—</div>
+                </div>
+              </div>
+              <table>
+                <tr><td style="color:var(--text-muted)">Standard</td><td style="color:var(--btc)">OP_20</td></tr>
+                <tr><td style="color:var(--text-muted)">Network</td><td id="pNet" style="color:var(--text)">—</td></tr>
+                <tr><td style="color:var(--text-muted)">Supply</td><td id="pSup" style="color:var(--text)">—</td></tr>
+                <tr><td style="color:var(--text-muted)">Decimals</td><td id="pDec" style="color:var(--text)">8</td></tr>
+                <tr><td style="color:var(--text-muted)">Runtime</td><td style="color:var(--green)">WebAssembly</td></tr>
+              </table>
+            </div>
+
+            <div class="card" id="depResultCard" style="display:none">
+              <div class="card-title"><span class="dot" style="background:var(--green)"></span> Deploy Result</div>
+              <div id="depResultBody"></div>
+            </div>
+
+            <div class="card">
+              <div class="card-title" style="font-size:12px"><span class="dot" style="background:var(--yellow)"></span> How it works</div>
+              <div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text-dim);line-height:2">
+                1· WASM bytecode embedded in Bitcoin TX<br>
+                2· OP_WALLET signs &amp; broadcasts to Bitcoin<br>
+                3· OPNet nodes index contract from chain<br>
+                4· Contract address derived from TX output<br>
+                5· Token live once TX confirmed (1 block)
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" id="depLogCard" style="display:none">
+          <div class="card-title"><span class="dot"></span> Deploy Log</div>
+          <div class="log" id="depLog"></div>
+        </div>
+      </div>
+
+      <!-- INTERACT -->
+      <div id="sec-interact" class="section">
+        <div class="page-header">
+          <div class="page-title">Contract <span>Interaction</span></div>
+          <div class="page-sub">Read and write OP_20 token contracts on Bitcoin Testnet</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span class="dot"></span> Load Contract</div>
+          <div style="display:flex;gap:10px">
+            <input id="ctAddr" placeholder="OP_20 contract address (bcrt1p... or tb1p...)" style="flex:1">
+            <button class="btn btn-s" onclick="loadContract()">Load</button>
+          </div>
+        </div>
+
+        <div id="ctPanel" style="display:none">
+          <div class="tabs">
+            <div class="tab active" onclick="stab(this,'tp-read')">📖 Read</div>
+            <div class="tab" onclick="stab(this,'tp-write')">✏️ Write</div>
+          </div>
+
+          <div id="tp-read" class="tp active">
+            <div class="two-col">
+              <div class="card">
+                <div class="card-title" style="font-size:12px"><span class="dot" style="background:var(--cyan)"></span> Token Info</div>
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  <button class="btn btn-g btn-sm" onclick="rfn('name')">name()</button>
+                  <button class="btn btn-g btn-sm" onclick="rfn('symbol')">symbol()</button>
+                  <button class="btn btn-g btn-sm" onclick="rfn('decimals')">decimals()</button>
+                  <button class="btn btn-g btn-sm" onclick="rfn('totalSupply')">totalSupply()</button>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-title" style="font-size:12px"><span class="dot" style="background:var(--green)"></span> Balance Query</div>
+                <div class="fg">
+                  <label>Address (blank = yours)</label>
+                  <input id="bofAddr" placeholder="bcrt1p...">
+                </div>
+                <button class="btn btn-g btn-sm" onclick="rBalOf()" style="width:100%">balanceOf(address)</button>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title"><span class="dot" style="background:var(--green)"></span> Response</div>
+              <div class="res" id="readRes">// Call a function above to see the result...</div>
+            </div>
+          </div>
+
+          <div id="tp-write" class="tp">
+            <div class="alert a-warn">⚠ Write functions open OP_WALLET for confirmation and broadcast a real Bitcoin transaction.</div>
+            <div class="two-col">
+              <div class="card">
+                <div class="card-title" style="font-size:12px"><span class="dot" style="background:var(--op)"></span> transfer(to, amount)</div>
+                <div class="fg"><label>Recipient</label><input id="tfTo" placeholder="bcrt1p..."></div>
+                <div class="fg"><label>Amount (base units)</label><input id="tfAmt" placeholder="e.g. 100000000 = 1 token @ 8 dec"></div>
+                <div class="fg"><label>Fee Rate (sat/vB)</label><input type="number" id="tfFee" value="10" min="1"></div>
+                <button class="btn btn-p btn-sm" onclick="wTransfer()" style="width:100%">Execute Transfer</button>
+              </div>
+              <div class="card">
+                <div class="card-title" style="font-size:12px"><span class="dot" style="background:var(--yellow)"></span> approve(spender, amount)</div>
+                <div class="fg"><label>Spender Address</label><input id="appSpender" placeholder="bcrt1p..."></div>
+                <div class="fg"><label>Amount (base units)</label><input id="appAmt" placeholder="e.g. 5000000000"></div>
+                <div class="fg"><label>Fee Rate (sat/vB)</label><input type="number" id="appFee" value="10" min="1"></div>
+                <button class="btn btn-s btn-sm" onclick="wApprove()" style="width:100%">Approve</button>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title"><span class="dot" style="background:var(--op)"></span> Transaction Result</div>
+              <div class="res" id="writeRes">// Transaction result will appear here...</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="noCtMsg" class="empty"><div class="empty-i">⬡</div>Enter a contract address above and click Load</div>
+      </div>
+
+      <!-- TRANSFER -->
+      <div id="sec-transfer" class="section">
+        <div class="page-header">
+          <div class="page-title">Token <span>Transfer</span></div>
+          <div class="page-sub">Send OP_20 tokens via OP_WALLET signature</div>
+        </div>
+        <div class="two-col">
+          <div class="card">
+            <div class="card-title"><span class="dot"></span> Transfer Details</div>
+            <div class="fg"><label>Token Contract Address *</label><input id="xCt" placeholder="bcrt1p... (OP_20 contract address)"></div>
+            <div class="fg"><label>From (your address)</label><input id="xFrom" readonly></div>
+            <div class="fg"><label>To Address *</label><input id="xTo" placeholder="bcrt1p..."></div>
+            <div class="fg"><label>Amount (base units) *</label><input id="xAmt" placeholder="e.g. 100000000 = 1 token @ 8 decimals"></div>
+            <div class="fg"><label>Fee Rate (sat/vB)</label><input type="number" id="xFee" value="10" min="1"></div>
+            <button class="btn btn-p" id="xBtn" onclick="doTransfer()" style="width:100%">
+              <span id="xSp" class="sp" style="display:none"></span>
+              ↔ Send via OP_WALLET
+            </button>
+          </div>
+          <div class="card">
+            <div class="card-title"><span class="dot" style="background:var(--cyan)"></span> Result</div>
+            <div class="res" id="xRes" style="min-height:160px">// Result will appear here...</div>
+            <div class="divider"></div>
+            <div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text-dim);line-height:1.9">
+              ℹ OP_WALLET popup will appear for confirmation<br>
+              ℹ Sign to authorize the Bitcoin transaction<br>
+              ℹ Transfer confirmed after 1 Bitcoin block<br>
+              ℹ Track your TX on <a href="https://opscan.org" target="_blank" style="color:var(--cyan);text-decoration:none">opscan.org</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- HISTORY -->
+      <div id="sec-history" class="section">
+        <div class="page-header">
+          <div class="page-title">Session <span>History</span></div>
+          <div class="page-sub">Transactions from this browser session</div>
+        </div>
+        <div class="card">
+          <div id="histBody"><div class="empty"><div class="empty-i">📭</div>No transactions recorded yet</div></div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </main>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+// ===== STATE =====
+const S = { connected:false, address:'', pubkey:'', network:'', balance:null, history:[] };
+
+// ===== PROVIDER =====
+function getP() {
+  // OP_WALLET injects window.opnet (mirrors UniSat's window.unisat pattern)
+  if (typeof window.opnet !== 'undefined') return window.opnet;
+  return null;
+}
+function rpcURL() {
+  const n = S.network.toLowerCase();
+  if (n.includes('regtest')) return 'https://regtest.opnet.org';
+  return 'https://testnet.opnet.org';
+}
+
+// ===== CONNECT =====
+async function connectWallet() {
+  const p = getP();
+  if (!p) {
+    showGateErr('OP_WALLET extension not detected. Please install it first.');
+    return;
+  }
+  gateLoad(true);
+  try {
+    const accounts = await p.requestAccounts();
+    if (!accounts?.length) throw new Error('No accounts returned from OP_WALLET');
+    S.address = accounts[0];
+    S.connected = true;
+    try { S.pubkey = await p.getPublicKey(); } catch(e){}
+    try {
+      const net = await p.getNetwork();
+      S.network = typeof net==='string' ? net : (net?.network || net?.name || 'testnet');
+    } catch(e){ S.network = 'testnet'; }
+    try {
+      const bal = await p.getBalance();
+      S.balance = bal;
+    } catch(e){}
+
+    p.on?.('accountsChanged', onAccChange);
+    p.on?.('networkChanged', onNetChange);
+    afterConnect();
+  } catch(err) {
+    gateLoad(false);
+    showGateErr(err.message?.includes('reject') ? 'Connection rejected by user.' : (err.message || 'Failed to connect'));
+  }
+}
+
+function afterConnect() {
+  gateLoad(false);
+  document.getElementById('gate').classList.add('hidden');
+  refreshUI();
+  toast('OP_WALLET connected ✓','ok');
+  setTimeout(updateBalanceWarning, 800); // check after balance loads
+}
+
+function disconnectWallet() {
+  const p = getP();
+  try { p?.removeListener?.('accountsChanged', onAccChange); } catch(e){}
+  try { p?.removeListener?.('networkChanged', onNetChange); } catch(e){}
+  S.connected=false; S.address=''; S.pubkey=''; S.network=''; S.balance=null;
+  document.getElementById('gate').classList.remove('hidden');
+  document.getElementById('gateErr').style.display='none';
+  document.getElementById('gateTxt').textContent='🔗 Connect OP_WALLET';
+  toast('Wallet disconnected','info');
+}
+
+function onAccChange(accs) {
+  if (!accs?.length) { disconnectWallet(); return; }
+  S.address = accs[0]; refreshUI(); toast('Account changed','info');
+}
+async function onNetChange(net) {
+  S.network = typeof net==='string'?net:(net?.network||net?.name||'');
+  refreshUI(); toast('Network: '+S.network,'info');
+}
+
+// ===== REFRESH UI =====
+function refreshUI() {
+  const net = S.network || 'testnet';
+  document.getElementById('netLabel').textContent = cap(net);
+  document.getElementById('hdrAddr').textContent = trunc(S.address,8,6);
+  document.getElementById('dAddr').textContent = trunc(S.address,10,8);
+  document.getElementById('dAddr').title = S.address;
+  document.getElementById('dPub').textContent = S.pubkey ? trunc(S.pubkey,12,8) : '—';
+  document.getElementById('dNet').textContent = cap(net);
+  document.getElementById('pNet').textContent = cap(net);
+  document.getElementById('xFrom').value = S.address;
+
+  if (S.balance != null) {
+    const sats = typeof S.balance==='object' ? (S.balance.confirmed||S.balance.total||0) : S.balance;
+    document.getElementById('dBal').textContent = fmtBTC(sats);
+  } else {
+    document.getElementById('dBal').textContent = '—';
+    fetchBal();
+  }
+}
+
+async function fetchBal() {
+  const p = getP(); if (!p) return;
+  try {
+    const bal = await p.getBalance();
+    S.balance = bal;
+    const sats = typeof bal==='object'?(bal.confirmed||bal.total||0):bal;
+    S.balanceSats = typeof sats === 'string' ? parseInt(sats) : sats;
+    document.getElementById('dBal').textContent = fmtBTC(sats);
+    updateBalanceWarning();
+  } catch(e){}
+}
+
+function updateBalanceWarning() {
+  const sats = S.balanceSats || 0;
+  const warn = document.getElementById('balWarnBanner');
+  if (!warn) return;
+  if (sats === 0) {
+    warn.style.display = 'flex';
+    warn.innerHTML = `⚠ <b>Zero balance detected.</b> You need tBTC to pay fees. <a href="https://faucet.opnet.org" target="_blank" style="color:var(--yellow);text-decoration:underline;margin-left:6px">Get tBTC from faucet →</a>`;
+  } else if (sats < 10000) {
+    warn.style.display = 'flex';
+    warn.innerHTML = `⚠ <b>Low balance: ${fmtBTC(sats)}</b> — may not cover deploy fees. <a href="https://faucet.opnet.org" target="_blank" style="color:var(--yellow);text-decoration:underline;margin-left:6px">Top up →</a>`;
+  } else {
+    warn.style.display = 'none';
+  }
+}
+
+// ===== DEPLOY =====
+// ===== EMBEDDED OP_20 WASM BASE + IN-BROWSER PATCHER =====
+// Pre-compiled minimal OP_20 WASM with patchable data segments.
+// Placeholder strings: name="NNNNNNNNNNNNNNNNNNNN" (20 chars), symbol="SSSSSSSS" (8 chars)
+// All offsets are FILE byte offsets into the WASM binary.
+const OP20_WASM_HEX = '0061736d01000000011b066000017f6000017e60017f017f60027f7f017f60000060017f00020d0103656e760561626f727400050308070000000003030405030100010616047f0041b0010b7f0141120b7e0142000b7e0142000b075d08066d656d6f72790200076765744e616d6500000967657453796d626f6c00010b676574446563696d616c7300020e676574546f74616c537570706c790003066465706c6f7900040463616c6c00050b5f5f686561705f6261736503000a2807060041c8000f0b060041f8000f0b040023010b040023020b06017f0141010b040041010b02000b0b75040041c0000b3002000000280000004e004e004e004e004e004e004e004e004e004e004e004e004e004e004e004e004e004e004e004e000041f0000b18020000001000000053005300530053005300530053005300004188010b0412000000004190010b1000000000000000000000000000000000';
+const OP20_PATCH = {
+  NAME_LEN_AT:   241,  // i32 LE: UTF-16 byte length of name
+  NAME_DATA_AT:  245,  // UTF-16 LE name chars, max 40 bytes (20 chars)
+  SYM_LEN_AT:    295,  // i32 LE: UTF-16 byte length of symbol
+  SYM_DATA_AT:   299,  // UTF-16 LE symbol chars, max 16 bytes (8 chars)
+  DEC_AT:        321,  // i32 LE: decimals (0-18)
+  SUP_AT:        325,  // 16 bytes: u128 supply, little-endian
+  NAME_MAX_BYTES: 40,
+  SYM_MAX_BYTES:  16,
+};
+
+function hexToBytes(hex) {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2)
+    bytes[i >> 1] = parseInt(hex.slice(i, i + 2), 16);
+  return bytes;
+}
+
+function writeI32LE(buf, offset, value) {
+  buf[offset]   =  value        & 0xff;
+  buf[offset+1] = (value >>  8) & 0xff;
+  buf[offset+2] = (value >> 16) & 0xff;
+  buf[offset+3] = (value >> 24) & 0xff;
+}
+
+function writeU128LE(buf, offset, bigintVal) {
+  // Write 16 bytes little-endian u128
+  let v = BigInt(bigintVal);
+  for (let i = 0; i < 16; i++) {
+    buf[offset + i] = Number(v & 0xffn);
+    v >>= 8n;
+  }
+}
+
+function writeUTF16LE(buf, offset, str, maxBytes) {
+  // Zero-fill the slot first (clear placeholder)
+  buf.fill(0, offset, offset + maxBytes);
+  // Write new string
+  for (let i = 0; i < str.length && i * 2 < maxBytes; i++) {
+    const code = str.charCodeAt(i);
+    buf[offset + i * 2]     =  code       & 0xff;
+    buf[offset + i * 2 + 1] = (code >> 8) & 0xff;
+  }
+}
+
+function buildOP20Wasm(name, symbol, decimals, supplyBigInt) {
+  const buf = hexToBytes(OP20_WASM_HEX);
+  const p   = OP20_PATCH;
+  // Clamp inputs
+  const n = name.slice(0, 20);
+  const s = symbol.slice(0, 8).toUpperCase();
+  const d = Math.max(0, Math.min(18, decimals));
+  // Patch name
+  writeUTF16LE(buf, p.NAME_DATA_AT, n, p.NAME_MAX_BYTES);
+  writeI32LE(buf, p.NAME_LEN_AT, n.length * 2);
+  // Patch symbol
+  writeUTF16LE(buf, p.SYM_DATA_AT, s, p.SYM_MAX_BYTES);
+  writeI32LE(buf, p.SYM_LEN_AT, s.length * 2);
+  // Patch decimals
+  writeI32LE(buf, p.DEC_AT, d);
+  // Patch supply (u128)
+  const supplyScaled = supplyBigInt * (10n ** BigInt(d));
+  writeU128LE(buf, p.SUP_AT, supplyScaled);
+  return buf;
+}
+
+async function deployToken() {
+  const name  = document.getElementById('dName').value.trim();
+  const sym   = document.getElementById('dSym').value.trim().toUpperCase();
+  const sup   = document.getElementById('dSupply').value.trim();
+  const dec   = parseInt(document.getElementById('dDec').value) || 18;
+  const fee   = parseInt(document.getElementById('dFee').value) || 10;
+  const prio  = parseInt(document.getElementById('dPrio').value) || 330;
+
+  if (!name)                    { toast('Token name required', 'err'); return; }
+  if (!sym)                     { toast('Symbol required', 'err'); return; }
+  if (!sup || parseInt(sup) < 1){ toast('Supply must be > 0', 'err'); return; }
+
+  const p = getP();
+  if (!p) { toast('OP_WALLET not found', 'err'); return; }
+
+  // Pre-flight: refresh balance and check for UTXOs
+  try {
+    const bal = await p.getBalance();
+    S.balance = bal;
+    const sats = typeof bal==='object' ? (bal.confirmed||bal.total||0) : bal;
+    S.balanceSats = typeof sats === 'string' ? parseInt(sats) : (sats || 0);
+    document.getElementById('dBal').textContent = fmtBTC(S.balanceSats);
+    updateBalanceWarning();
+  } catch(e) { S.balanceSats = 0; }
+
+  if (!S.balanceSats || S.balanceSats < 1000) {
+    const msg = S.balanceSats === 0
+      ? 'No UTXOs — wallet has 0 balance. Get tBTC from faucet.opnet.org first.'
+      : `Balance too low (${S.balanceSats} sats). Need at least 1000 sats to deploy.`;
+    toast(msg, 'err');
+    // Show the log card with a helpful error
+    const lc2 = document.getElementById('depLogCard');
+    const le2 = document.getElementById('depLog');
+    lc2.style.display = 'block'; le2.innerHTML = '';
+    const ts = new Date().toISOString().substring(11,19);
+    le2.innerHTML = `<div class="le">[${ts}] ERROR: ${msg}</div>` +
+      `<div class="lw">[${ts}] → Visit <a href="https://faucet.opnet.org" target="_blank" style="color:var(--cyan)">faucet.opnet.org</a> to get free testnet BTC</div>` +
+      `<div class="li">[${ts}] → Switch to Regtest network in OP_WALLET for instant coins</div>`;
+    return;
+  }
+
+  setBL('depBtn', 'depSp', true);
+  const lc = document.getElementById('depLogCard');
+  const le = document.getElementById('depLog');
+  lc.style.display = 'block'; le.innerHTML = '';
+
+  function L(m, c='li') {
+    const ts = new Date().toISOString().substring(11, 19);
+    le.innerHTML += `<div class="${c}">[${ts}] ${m}</div>`;
+    le.scrollTop = le.scrollHeight;
+  }
+
+  try {
+    L('Preparing OP_20 deployment...');
+    L(`Name: ${name} | Symbol: ${sym} | Supply: ${sup} | Decimals: ${dec}`);
+    L(`Fee: ${fee} sat/vB | Priority: ${prio} sats`);
+    L('Building WASM bytecode in browser...', 'ld');
+
+    const wasmBytes = buildOP20Wasm(name, sym, dec, BigInt(sup));
+    const bytecodeHex = '0x' + Array.from(wasmBytes).map(b => b.toString(16).padStart(2,'0')).join('');
+    L(`Bytecode ready (${wasmBytes.length} bytes)`, 'ld');
+    L('Opening OP_WALLET for signature confirmation...', 'lw');
+    L('⚠ Please confirm the transaction in OP_WALLET popup', 'lw');
+
+    let tx;
+    if (p.deployContract) {
+      tx = await p.deployContract({ bytecode: bytecodeHex, feeRate: fee, priorityFee: prio });
+    } else if (p.deployOpnetContract) {
+      tx = await p.deployOpnetContract({ bytecode: bytecodeHex, feeRate: fee, priorityFee: prio });
+    } else {
+      throw new Error('deployContract not available — please update OP_WALLET.');
+    }
+
+    const txid = tx?.txid || tx?.hash || (typeof tx==='string' ? tx : JSON.stringify(tx));
+    L('Transaction broadcast successfully!','lo');
+    L('TX: '+txid,'ld');
+    L('Contract will be indexed by OPNet after confirmation (1-3 blocks)','li');
+
+    showDepResult(name, sym, sup, dec, txid);
+    addHist('Deploy', `${name} (${sym})`, txid);
+    toast(`${sym} deployed! TX: ${trunc(txid,8,6)}`,'ok');
+  } catch(err) {
+    L('ERROR: '+(err.message||err),'le');
+    if (err.code===4001||err.message?.includes('reject')||err.message?.includes('denied')) {
+      L('User rejected the transaction.','lw');
+      toast('Rejected by user','info');
+    } else {
+      toast('Deploy failed: '+(err.message||'Unknown error'),'err');
+    }
+  } finally {
+    setBL('depBtn','depSp',false);
+  }
+}
+
+function showDepResult(name, sym, sup, dec, txid) {
+  const c = document.getElementById('depResultCard');
+  const b = document.getElementById('depResultBody');
+  c.style.display='block';
+  const base = 'https://opscan.org/tx/';
+  b.innerHTML = `
+    <div class="alert a-ok">✅ Deployment transaction broadcast!</div>
+    <table>
+      <tr><td style="color:var(--text-muted)">Token</td><td style="color:var(--btc)">${name} (${sym})</td></tr>
+      <tr><td style="color:var(--text-muted)">Supply</td><td>${parseInt(sup).toLocaleString()}</td></tr>
+      <tr><td style="color:var(--text-muted)">Decimals</td><td>${dec}</td></tr>
+      <tr><td style="color:var(--text-muted)">TX ID</td>
+          <td><a href="${base}${txid}" target="_blank" style="color:var(--cyan);text-decoration:none;font-family:'Space Mono',monospace;font-size:10px">${trunc(txid,14,12)} ↗</a></td></tr>
+      <tr><td style="color:var(--text-muted)">Status</td><td><span class="badge b-pend">Pending</span></td></tr>
+    </table>
+    <div style="margin-top:10px;font-family:'Space Mono',monospace;font-size:10px;color:var(--text-muted)">
+      Contract address available on OP_SCAN after indexing.
+    </div>`;
+}
+
+// ===== INTERACT =====
+function loadContract() {
+  const a = document.getElementById('ctAddr').value.trim();
+  if (!a) { toast('Enter contract address','err'); return; }
+  document.getElementById('noCtMsg').style.display='none';
+  document.getElementById('ctPanel').style.display='block';
+  document.getElementById('readRes').textContent='// Contract loaded: '+a+'\n// Select a function to call...';
+  toast('Contract loaded','ok');
+}
+
+async function rfn(fn) {
+  const a = document.getElementById('ctAddr').value.trim();
+  const el = document.getElementById('readRes');
+  el.className='res pend'; el.textContent='Calling '+fn+'() via OPNet RPC...';
+  try {
+    const r = await opnetCall(rpcURL(), a, fn, []);
+    el.className='res'; el.textContent=JSON.stringify(r, null, 2);
+  } catch(e) {
+    el.className='res err'; el.textContent='Error calling '+fn+'():\n'+e.message;
+    toast(fn+'() failed','err');
+  }
+}
+
+async function rBalOf() {
+  const a = document.getElementById('ctAddr').value.trim();
+  const qa = document.getElementById('bofAddr').value.trim()||S.address;
+  const el = document.getElementById('readRes');
+  el.className='res pend'; el.textContent='Calling balanceOf('+trunc(qa,8,6)+')...';
+  try {
+    const r = await opnetCall(rpcURL(), a, 'balanceOf', [qa]);
+    el.className='res'; el.textContent=JSON.stringify(r,null,2);
+  } catch(e) { el.className='res err'; el.textContent='Error:\n'+e.message; }
+}
+
+async function wTransfer() {
+  const a = document.getElementById('ctAddr').value.trim();
+  const to = document.getElementById('tfTo').value.trim();
+  const amt = document.getElementById('tfAmt').value.trim();
+  const fee = parseInt(document.getElementById('tfFee').value)||10;
+  if (!to||!amt) { toast('Fill recipient and amount','err'); return; }
+  const p = getP();
+  const el = document.getElementById('writeRes');
+  el.className='res pend'; el.textContent='Requesting OP_WALLET signature...\n(Wallet popup should appear)';
+  try {
+    const cd = encTransfer(to, BigInt(amt));
+    const tx = await p.callContract({ contractAddress: a, calldata: cd, feeRate: fee });
+    const txid = tx?.txid||tx?.hash||JSON.stringify(tx);
+    el.className='res'; el.textContent='✅ Transfer broadcast!\n\nTX: '+txid;
+    addHist('Transfer', trunc(a,8,6), txid); toast('Transfer broadcast!','ok');
+  } catch(e) {
+    el.className='res err'; el.textContent='Error: '+e.message;
+    if (!e.message?.includes('reject')) toast('Failed: '+e.message,'err');
+  }
+}
+
+async function wApprove() {
+  const a = document.getElementById('ctAddr').value.trim();
+  const sp = document.getElementById('appSpender').value.trim();
+  const amt = document.getElementById('appAmt').value.trim();
+  const fee = parseInt(document.getElementById('appFee').value)||10;
+  if (!sp||!amt) { toast('Fill spender and amount','err'); return; }
+  const p = getP();
+  const el = document.getElementById('writeRes');
+  el.className='res pend'; el.textContent='Requesting OP_WALLET signature...';
+  try {
+    const cd = encApprove(sp, BigInt(amt));
+    const tx = await p.callContract({ contractAddress: a, calldata: cd, feeRate: fee });
+    const txid = tx?.txid||tx?.hash||JSON.stringify(tx);
+    el.className='res'; el.textContent='✅ Approve broadcast!\n\nTX: '+txid;
+    addHist('Approve', trunc(a,8,6), txid); toast('Approve broadcast!','ok');
+  } catch(e) {
+    el.className='res err'; el.textContent='Error: '+e.message;
+  }
+}
+
+// ===== TRANSFER PAGE =====
+async function doTransfer() {
+  const ct = document.getElementById('xCt').value.trim();
+  const to = document.getElementById('xTo').value.trim();
+  const amt = document.getElementById('xAmt').value.trim();
+  const fee = parseInt(document.getElementById('xFee').value)||10;
+  if (!ct) { toast('Enter contract address','err'); return; }
+  if (!to) { toast('Enter recipient','err'); return; }
+  if (!amt) { toast('Enter amount','err'); return; }
+  const p = getP();
+  const el = document.getElementById('xRes');
+  setBL('xBtn','xSp',true);
+  el.className='res pend'; el.textContent='Requesting OP_WALLET signature...\n(Wallet popup should appear)';
+  try {
+    const cd = encTransfer(to, BigInt(amt));
+    const tx = await p.callContract({ contractAddress: ct, calldata: cd, feeRate: fee });
+    const txid = tx?.txid||tx?.hash||JSON.stringify(tx);
+    el.className='res';
+    el.textContent='✅ Transfer broadcast!\n\nTX: '+txid+'\nTo: '+to+'\nAmount: '+amt+'\n\nTrack on opscan.org';
+    addHist('Transfer', trunc(ct,8,6), txid); toast('Transfer sent!','ok');
+  } catch(e) {
+    el.className='res err'; el.textContent='Error: '+e.message;
+    if (!e.message?.includes('reject')) toast('Failed: '+e.message,'err');
+  } finally { setBL('xBtn','xSp',false); }
+}
+
+// ===== OPNET RPC =====
+async function opnetCall(url, contract, fn, params) {
+  const body = { jsonrpc:'2.0', id:Date.now(), method:'btc_call', params:[{ to:contract, data:encCalldata(fn,params), from:S.address||'' }] };
+  const r = await fetch(url,{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+  if (!r.ok) throw new Error('RPC HTTP '+r.status);
+  const j = await r.json();
+  if (j.error) throw new Error(j.error.message||JSON.stringify(j.error));
+  return j.result;
+}
+
+// ===== CALLDATA ENCODING =====
+const SELS = { name:'06fdde03', symbol:'95d89b41', decimals:'313ce567', totalSupply:'18160ddd', balanceOf:'70a08231', transfer:'a9059cbb', approve:'095ea7b3' };
+function encCalldata(fn, params) {
+  let d = SELS[fn]||'00000000';
+  for (const p of params) {
+    if (typeof p==='string') d+=encAddr(p);
+    else if (typeof p==='bigint') d+=encU256(p);
+  }
+  return d;
+}
+function encAddr(a){ const h=[...a].map(c=>c.charCodeAt(0).toString(16).padStart(2,'0')).join(''); return h.padStart(64,'0').substring(0,64); }
+function encU256(n){ return n.toString(16).padStart(64,'0'); }
+function encStr(s){ const h=[...s].map(c=>c.charCodeAt(0).toString(16).padStart(2,'0')).join(''); return s.length.toString(16).padStart(64,'0')+h.padEnd(Math.ceil(h.length/64)*64,'0'); }
+function encOP20Deploy(n,s,d,sup){ return '0x'+encStr(n)+encStr(s)+d.toString(16).padStart(64,'0')+encU256(sup); }
+function encTransfer(to,amt){ return '0x'+SELS.transfer+encAddr(to)+encU256(amt); }
+function encApprove(sp,amt){ return '0x'+SELS.approve+encAddr(sp)+encU256(amt); }
+
+// ===== HISTORY =====
+function addHist(type, target, txid) {
+  S.history.unshift({ type, target, txid, time: new Date().toLocaleTimeString() });
+  renderHist();
+}
+function renderHist() {
+  const rows = S.history.map(t=>`<tr>
+    <td><span class="badge b-info">${t.type}</span></td>
+    <td>${t.target}</td>
+    <td class="tx-hash" onclick="cpText('${t.txid}')" title="Click to copy" style="cursor:pointer">${trunc(t.txid||'',12,10)}</td>
+    <td>${t.time}</td>
+    <td><a href="https://opscan.org/tx/${t.txid}" target="_blank" style="color:var(--cyan);text-decoration:none;font-size:10px">View ↗</a></td></tr>`).join('');
+  const html = rows ? `<table><thead><tr><th>Type</th><th>Target</th><th>TX Hash</th><th>Time</th><th>Explorer</th></tr></thead><tbody>${rows}</tbody></table>` : '<div class="empty"><div class="empty-i">📭</div>No transactions yet</div>';
+  document.getElementById('histBody').innerHTML = html;
+  document.getElementById('dTxList').innerHTML = S.history.length
+    ? `<table><thead><tr><th>Type</th><th>Target</th><th>TX</th><th>Time</th></tr></thead><tbody>
+       ${S.history.slice(0,5).map(t=>`<tr><td><span class="badge b-info">${t.type}</span></td><td>${t.target}</td><td class="tx-hash">${trunc(t.txid||'',10,8)}</td><td>${t.time}</td></tr>`).join('')}</tbody></table>`
+    : '<div class="empty"><div class="empty-i">📭</div>No transactions yet this session</div>';
+}
+
+// ===== UI HELPERS =====
+function nav(el) {
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  el.classList.add('active');
+  const s = el.getAttribute('data-s');
+  document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));
+  document.getElementById('sec-'+s).classList.add('active');
+  if (s === 'deploy') { fetchBal(); updateBalanceWarning(); }
+}
+function stab(el,pid) {
+  el.parentElement.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  ['tp-read','tp-write'].forEach(id=>{ const e=document.getElementById(id); if(e)e.classList.remove('active'); });
+  const t=document.getElementById(pid); if(t)t.classList.add('active');
+}
+function prevDeploy() {
+  const n=document.getElementById('dName').value||'—';
+  const s=document.getElementById('dSym').value.toUpperCase()||'—';
+  const sup=document.getElementById('dSupply').value;
+  const d=document.getElementById('dDec').value;
+  document.getElementById('pName').textContent=n;
+  document.getElementById('pSym').textContent=s;
+  document.getElementById('pIcon').textContent=s.substring(0,2)||'??';
+  document.getElementById('pSup').textContent=sup?parseInt(sup).toLocaleString():'—';
+  document.getElementById('pDec').textContent=d||'8';
+}
+function setBL(bid,sid,v) {
+  const b=document.getElementById(bid); const sp=document.getElementById(sid);
+  if(b) b.disabled=v; if(sp) sp.style.display=v?'block':'none';
+}
+function gateLoad(v) {
+  document.getElementById('gateSp').style.display=v?'block':'none';
+  document.getElementById('gateBtn').disabled=v;
+  document.getElementById('gateTxt').textContent=v?'Connecting...':'🔗 Connect OP_WALLET';
+}
+function showGateErr(m) {
+  gateLoad(false);
+  const e=document.getElementById('gateErr');
+  e.textContent='⚠ '+m; e.style.display='flex';
+}
+function toast(m,t='info') {
+  const w=document.getElementById('toasts');
+  const el=document.createElement('div');
+  el.className='toast t-'+(t==='ok'?'ok':t==='err'?'err':'info');
+  el.innerHTML=`<span>${t==='ok'?'✓':t==='err'?'✗':'ℹ'}</span> ${m}`;
+  w.appendChild(el);
+  setTimeout(()=>{ el.style.opacity='0'; el.style.transform='translateX(80px)'; el.style.transition='all .3s'; setTimeout(()=>el.remove(),320); },3500);
+}
+function trunc(s,a=8,b=6){ if(!s) return ''; if(s.length<=a+b+3) return s; return s.substring(0,a)+'...'+s.substring(s.length-b); }
+function fmtBTC(sats){ if(sats==null) return '—'; const n=typeof sats==='string'?parseInt(sats):sats; return (n/1e8).toFixed(8)+' BTC'; }
+function cap(s){ return s?s.charAt(0).toUpperCase()+s.slice(1):s; }
+function copyAddr(){ cpText(S.address); toast('Address copied!','ok'); }
+function cpText(t){ if(!t) return; navigator.clipboard?.writeText(t).catch(()=>{ const e=document.createElement('textarea'); e.value=t; document.body.appendChild(e); e.select(); document.execCommand('copy'); e.remove(); }); }
+
+// ===== INIT =====
+window.addEventListener('load', async()=>{
+  await new Promise(r=>setTimeout(r,400)); // let extension inject
+  const p=getP();
+  if(p) {
+    try {
+      const accs = await p.getAccounts?.();
+      if (accs?.length) {
+        S.address=accs[0]; S.connected=true;
+        try{ S.pubkey=await p.getPublicKey(); }catch(e){}
+        try{ const n=await p.getNetwork(); S.network=typeof n==='string'?n:(n?.network||n?.name||'testnet'); }catch(e){ S.network='testnet'; }
+        p.on?.('accountsChanged',onAccChange);
+        p.on?.('networkChanged',onNetChange);
+        afterConnect();
+      }
+    } catch(e){}
+  }
+});
+</script>
+</body>
+</html>
