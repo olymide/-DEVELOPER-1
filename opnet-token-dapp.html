@@ -1,0 +1,1956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OP_NET Token Dev Studio — Bitcoin Layer 1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --btc: #F7931A;
+    --btc-dim: #c97210;
+    --op: #FF4D00;
+    --bg: #080B0F;
+    --surface: #0E1218;
+    --surface2: #141921;
+    --surface3: #1C2330;
+    --border: #1E2A38;
+    --border2: #2A3A4E;
+    --text: #E8EDF5;
+    --text-dim: #7A8FA6;
+    --text-muted: #3D5166;
+    --green: #00D26A;
+    --red: #FF3B3B;
+    --yellow: #FFD60A;
+    --cyan: #00C8FF;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(247,147,26,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(247,147,26,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Glow orbs */
+  .orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(120px);
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.12;
+  }
+  .orb-1 { width: 600px; height: 600px; background: var(--btc); top: -200px; left: -200px; animation: drift 20s ease-in-out infinite alternate; }
+  .orb-2 { width: 400px; height: 400px; background: var(--op); bottom: -100px; right: -100px; animation: drift 25s ease-in-out infinite alternate-reverse; }
+
+  @keyframes drift {
+    from { transform: translate(0,0) scale(1); }
+    to { transform: translate(60px, 40px) scale(1.1); }
+  }
+
+  /* Layout */
+  #app { position: relative; z-index: 1; }
+
+  /* Header */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 32px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(8,11,15,0.8);
+    backdrop-filter: blur(20px);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--btc), var(--op));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    font-weight: 800;
+    color: #000;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .logo-text {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+
+  .logo-text span { color: var(--btc); }
+
+  .network-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: rgba(247,147,26,0.1);
+    border: 1px solid rgba(247,147,26,0.3);
+    border-radius: 20px;
+    font-size: 12px;
+    font-family: 'Space Mono', monospace;
+    color: var(--btc);
+  }
+
+  .network-badge::before {
+    content: '';
+    width: 7px; height: 7px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  .wallet-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 18px;
+    background: linear-gradient(135deg, var(--btc), var(--op));
+    border: none;
+    border-radius: 8px;
+    color: #000;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .wallet-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+  .wallet-btn.connected { background: var(--surface2); border: 1px solid var(--border2); color: var(--text); }
+
+  /* Main layout */
+  main {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    min-height: calc(100vh - 65px);
+  }
+
+  /* Sidebar */
+  aside {
+    border-right: 1px solid var(--border);
+    padding: 24px 0;
+    background: rgba(14,18,24,0.5);
+  }
+
+  .nav-section {
+    padding: 0 16px;
+    margin-bottom: 8px;
+  }
+
+  .nav-label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 8px 12px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-dim);
+    transition: all 0.15s;
+    border: 1px solid transparent;
+  }
+
+  .nav-item:hover {
+    background: var(--surface2);
+    color: var(--text);
+    border-color: var(--border);
+  }
+
+  .nav-item.active {
+    background: rgba(247,147,26,0.1);
+    color: var(--btc);
+    border-color: rgba(247,147,26,0.25);
+  }
+
+  .nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
+
+  /* Content area */
+  .content {
+    padding: 32px;
+    overflow-y: auto;
+  }
+
+  /* Page header */
+  .page-header {
+    margin-bottom: 32px;
+  }
+
+  .page-title {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    line-height: 1.1;
+  }
+
+  .page-title span { color: var(--btc); }
+
+  .page-subtitle {
+    color: var(--text-dim);
+    font-size: 14px;
+    margin-top: 6px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+    transition: border-color 0.2s;
+  }
+
+  .card:hover { border-color: var(--border2); }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .card-title {
+    font-size: 15px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-title .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--btc);
+  }
+
+  /* Stats grid */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.2s;
+  }
+
+  .stat-card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--btc), transparent);
+  }
+
+  .stat-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-family: 'Space Mono', monospace;
+    margin-bottom: 8px;
+  }
+
+  .stat-value {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+  }
+
+  .stat-value.orange { color: var(--btc); }
+  .stat-value.green { color: var(--green); }
+  .stat-value.cyan { color: var(--cyan); }
+
+  .stat-change {
+    font-size: 11px;
+    color: var(--green);
+    margin-top: 4px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* Form styles */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  .form-group.full { grid-column: 1 / -1; }
+
+  label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  input, textarea, select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input:focus, textarea:focus, select:focus {
+    border-color: var(--btc);
+    background: var(--surface3);
+  }
+
+  input::placeholder, textarea::placeholder { color: var(--text-muted); }
+
+  textarea { resize: vertical; min-height: 80px; }
+
+  select option { background: var(--surface2); }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 22px;
+    border-radius: 8px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    text-decoration: none;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--btc), var(--op));
+    color: #000;
+  }
+
+  .btn-primary:hover { opacity: 0.85; transform: translateY(-1px); box-shadow: 0 8px 20px rgba(247,147,26,0.3); }
+
+  .btn-secondary {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--text);
+  }
+
+  .btn-secondary:hover { border-color: var(--btc); color: var(--btc); }
+
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+  }
+
+  .btn-ghost:hover { border-color: var(--border2); color: var(--text); }
+
+  .btn-danger {
+    background: rgba(255,59,59,0.15);
+    border: 1px solid rgba(255,59,59,0.3);
+    color: var(--red);
+  }
+
+  .btn-danger:hover { background: rgba(255,59,59,0.25); }
+
+  .btn-sm { padding: 7px 14px; font-size: 12px; }
+
+  /* Code block */
+  .code-block {
+    background: #070B0F;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    line-height: 1.7;
+    overflow-x: auto;
+    position: relative;
+  }
+
+  .code-block .copy-btn {
+    position: absolute;
+    top: 10px; right: 10px;
+    padding: 4px 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 11px;
+    font-family: 'Space Mono', monospace;
+    transition: all 0.2s;
+  }
+
+  .code-block .copy-btn:hover { color: var(--btc); border-color: var(--btc); }
+
+  .kw { color: #7B93FF; }
+  .str { color: #A8FF78; }
+  .num { color: var(--btc); }
+  .fn { color: var(--cyan); }
+  .cm { color: var(--text-muted); }
+  .type { color: #FFB86C; }
+
+  /* Table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  th {
+    text-align: left;
+    padding: 10px 12px;
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 1px solid var(--border);
+    font-family: 'Space Mono', monospace;
+  }
+
+  td {
+    padding: 12px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { color: var(--text); background: rgba(255,255,255,0.02); }
+
+  .tx-hash {
+    color: var(--cyan);
+    font-size: 11px;
+  }
+
+  /* Badge */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .badge-success { background: rgba(0,210,106,0.1); color: var(--green); border: 1px solid rgba(0,210,106,0.2); }
+  .badge-pending { background: rgba(255,214,10,0.1); color: var(--yellow); border: 1px solid rgba(255,214,10,0.2); }
+  .badge-error { background: rgba(255,59,59,0.1); color: var(--red); border: 1px solid rgba(255,59,59,0.2); }
+  .badge-info { background: rgba(0,200,255,0.1); color: var(--cyan); border: 1px solid rgba(0,200,255,0.2); }
+
+  /* Progress bar */
+  .progress-bar {
+    height: 4px;
+    background: var(--surface3);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--btc), var(--op));
+    border-radius: 2px;
+    transition: width 0.5s ease;
+  }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0;
+  }
+
+  .tab {
+    padding: 10px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-dim);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.15s;
+  }
+
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--btc); border-bottom-color: var(--btc); }
+
+  /* Alert */
+  .alert {
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 16px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .alert-info { background: rgba(0,200,255,0.05); border: 1px solid rgba(0,200,255,0.2); color: var(--cyan); }
+  .alert-warning { background: rgba(255,214,10,0.05); border: 1px solid rgba(255,214,10,0.2); color: var(--yellow); }
+  .alert-success { background: rgba(0,210,106,0.05); border: 1px solid rgba(0,210,106,0.2); color: var(--green); }
+
+  /* Page sections */
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* Divider */
+  .divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+  /* Token card */
+  .token-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 10px;
+    transition: all 0.2s;
+  }
+
+  .token-card:hover { border-color: var(--btc); }
+
+  .token-icon {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .token-info { flex: 1; }
+  .token-name { font-weight: 700; font-size: 15px; }
+  .token-symbol { color: var(--text-muted); font-size: 12px; font-family: 'Space Mono', monospace; }
+  .token-address { color: var(--cyan); font-size: 11px; font-family: 'Space Mono', monospace; }
+
+  .token-meta { text-align: right; }
+  .token-supply { font-weight: 700; font-family: 'Space Mono', monospace; color: var(--btc); }
+  .token-holders { font-size: 11px; color: var(--text-muted); font-family: 'Space Mono', monospace; }
+
+  /* Connector status */
+  .connector-status {
+    padding: 16px;
+    background: rgba(0,200,255,0.05);
+    border: 1px solid rgba(0,200,255,0.15);
+    border-radius: 10px;
+    margin-bottom: 20px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--cyan);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .connector-status::before {
+    content: '⬡';
+    font-size: 18px;
+  }
+
+  /* Two column layout */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+  /* Range input */
+  input[type="range"] {
+    -webkit-appearance: none;
+    padding: 0;
+    height: 6px;
+    background: var(--surface3);
+    border-radius: 3px;
+    border: none;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--btc);
+    cursor: pointer;
+    border: 2px solid var(--bg);
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--btc); }
+
+  /* Toast */
+  .toast-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .toast {
+    padding: 12px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: 'Space Mono', monospace;
+    animation: slideIn 0.3s ease;
+    max-width: 360px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .toast-success { background: var(--surface2); border: 1px solid var(--green); color: var(--green); }
+  .toast-error { background: var(--surface2); border: 1px solid var(--red); color: var(--red); }
+  .toast-info { background: var(--surface2); border: 1px solid var(--cyan); color: var(--cyan); }
+
+  @keyframes slideIn {
+    from { transform: translateX(100px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  /* Glowing border on active inputs */
+  .glow {
+    box-shadow: 0 0 0 2px rgba(247,147,26,0.15), 0 0 20px rgba(247,147,26,0.05);
+  }
+
+  /* Loading spinner */
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(247,147,26,0.2);
+    border-top-color: var(--btc);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Response box */
+  .response-box {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--green);
+    min-height: 60px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<div id="app">
+
+<!-- Header -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">₿</div>
+    <div class="logo-text">OP<span>_NET</span> Studio</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div class="network-badge" id="networkBadge">Bitcoin Testnet</div>
+    <button class="wallet-btn" id="walletBtn" onclick="toggleWallet()">
+      🔗 Connect Wallet
+    </button>
+  </div>
+</header>
+
+<main>
+  <!-- Sidebar -->
+  <aside>
+    <div class="nav-section">
+      <div class="nav-label">Dashboard</div>
+      <div class="nav-item active" onclick="showSection('dashboard', this)">
+        <span class="icon">⬡</span> Overview
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Token Tools</div>
+      <div class="nav-item" onclick="showSection('deploy', this)">
+        <span class="icon">🚀</span> Deploy Token
+      </div>
+      <div class="nav-item" onclick="showSection('interact', this)">
+        <span class="icon">⚡</span> Interact
+      </div>
+      <div class="nav-item" onclick="showSection('mint', this)">
+        <span class="icon">🪙</span> Mint / Burn
+      </div>
+      <div class="nav-item" onclick="showSection('transfer', this)">
+        <span class="icon">↔</span> Transfer
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Explore</div>
+      <div class="nav-item" onclick="showSection('tokens', this)">
+        <span class="icon">📋</span> My Tokens
+      </div>
+      <div class="nav-item" onclick="showSection('history', this)">
+        <span class="icon">🕐</span> History
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Developer</div>
+      <div class="nav-item" onclick="showSection('code', this)">
+        <span class="icon">⌨</span> Code Examples
+      </div>
+      <div class="nav-item" onclick="showSection('faucet', this)">
+        <span class="icon">🚰</span> Faucet
+      </div>
+    </div>
+  </aside>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div id="section-dashboard" class="section active">
+      <div class="page-header">
+        <div class="page-title">Bitcoin <span>Layer 1</span> Token Studio</div>
+        <div class="page-subtitle">OP_20 Smart Contracts on Bitcoin Testnet · WASM-powered</div>
+      </div>
+
+      <div class="connector-status" id="connectorStatus">
+        MCP Server connected to ai.opnet.org · JSON-RPC endpoint ready · Testnet mode active
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">BTC Block Height</div>
+          <div class="stat-value orange" id="blockHeight">—</div>
+          <div class="stat-change" id="blockChange">Fetching...</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Your tBTC Balance</div>
+          <div class="stat-value green" id="btcBalance">—</div>
+          <div class="stat-change">Testnet Bitcoin</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Tokens Deployed</div>
+          <div class="stat-value cyan" id="tokenCount">3</div>
+          <div class="stat-change">+1 this session</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Gas (sat/vB)</div>
+          <div class="stat-value" id="gasPrice">12</div>
+          <div class="stat-change" style="color:var(--yellow)">Low congestion</div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><span class="dot"></span> Active OP_20 Tokens</div>
+            <button class="btn btn-ghost btn-sm" onclick="showSection('tokens', document.querySelectorAll('.nav-item')[5])">View All</button>
+          </div>
+          <div class="token-card">
+            <div class="token-icon" style="background:rgba(247,147,26,0.15);color:var(--btc)">BT</div>
+            <div class="token-info">
+              <div class="token-name">BitToken</div>
+              <div class="token-symbol">BTK</div>
+              <div class="token-address">bcrt1pqx4...j3l3d3cs6lzsfc3mxh</div>
+            </div>
+            <div class="token-meta">
+              <div class="token-supply">1,000,000</div>
+              <div class="token-holders">42 holders</div>
+            </div>
+          </div>
+          <div class="token-card">
+            <div class="token-icon" style="background:rgba(0,200,255,0.15);color:var(--cyan)">ST</div>
+            <div class="token-info">
+              <div class="token-name">SatoshiToken</div>
+              <div class="token-symbol">SAT</div>
+              <div class="token-address">bcrt1paw9...m9qkj7r2lzx1abc</div>
+            </div>
+            <div class="token-meta">
+              <div class="token-supply">21,000,000</div>
+              <div class="token-holders">128 holders</div>
+            </div>
+          </div>
+          <div class="token-card">
+            <div class="token-icon" style="background:rgba(0,210,106,0.15);color:var(--green)">OP</div>
+            <div class="token-info">
+              <div class="token-name">OPTest</div>
+              <div class="token-symbol">OPT</div>
+              <div class="token-address">bcrt1pkn3...qp9wv8x5nzr3def</div>
+            </div>
+            <div class="token-meta">
+              <div class="token-supply">500,000</div>
+              <div class="token-holders">17 holders</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><span class="dot"></span> Recent Transactions</div>
+            <button class="btn btn-ghost btn-sm" onclick="showSection('history', document.querySelectorAll('.nav-item')[6])">View All</button>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Action</th>
+                <th>Amount</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span style="color:var(--text)">Deploy BTK</span><br><span class="tx-hash">0x3f4a...b2c9</span></td>
+                <td>0.0002 BTC</td>
+                <td><span class="badge badge-success">Confirmed</span></td>
+              </tr>
+              <tr>
+                <td><span style="color:var(--text)">Mint SAT</span><br><span class="tx-hash">0x9e1d...7f3a</span></td>
+                <td>100,000 SAT</td>
+                <td><span class="badge badge-success">Confirmed</span></td>
+              </tr>
+              <tr>
+                <td><span style="color:var(--text)">Transfer OPT</span><br><span class="tx-hash">0x1b7c...4d8e</span></td>
+                <td>5,000 OPT</td>
+                <td><span class="badge badge-pending">Pending</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Network Info -->
+      <div class="card">
+        <div class="card-title" style="margin-bottom:16px"><span class="dot"></span> OP_NET Architecture on Bitcoin L1</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+          <div style="padding:14px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
+            <div style="color:var(--btc);font-size:20px;margin-bottom:6px">⛓</div>
+            <div style="font-size:13px;font-weight:700;">Bitcoin UTXO</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;font-family:'Space Mono',monospace;">State management via UTXO model</div>
+          </div>
+          <div style="padding:14px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
+            <div style="color:var(--cyan);font-size:20px;margin-bottom:6px">⬡</div>
+            <div style="font-size:13px;font-weight:700;">Tapscript</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;font-family:'Space Mono',monospace;">Complex logic via Taproot upgrade</div>
+          </div>
+          <div style="padding:14px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
+            <div style="color:var(--green);font-size:20px;margin-bottom:6px">⚙</div>
+            <div style="font-size:13px;font-weight:700;">WASM Runtime</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;font-family:'Space Mono',monospace;">Off-chain execution, on-chain commitment</div>
+          </div>
+          <div style="padding:14px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
+            <div style="color:var(--op);font-size:20px;margin-bottom:6px">🪙</div>
+            <div style="font-size:13px;font-weight:700;">OP_20 Standard</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;font-family:'Space Mono',monospace;">Fungible tokens native to Bitcoin</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DEPLOY TOKEN -->
+    <div id="section-deploy" class="section">
+      <div class="page-header">
+        <div class="page-title">Deploy <span>OP_20 Token</span></div>
+        <div class="page-subtitle">Create a new fungible token on Bitcoin Layer 1 Testnet</div>
+      </div>
+
+      <div class="alert alert-warning">
+        ⚠ You are deploying on Bitcoin Testnet · Transactions use tBTC (no real value) · Connect your OP_WALLET to proceed
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><span class="dot"></span> Token Configuration</div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Token Name</label>
+              <input type="text" id="tokenName" placeholder="e.g. My Bitcoin Token" oninput="updatePreview()">
+            </div>
+            <div class="form-group">
+              <label>Token Symbol</label>
+              <input type="text" id="tokenSymbol" placeholder="e.g. MBT" maxlength="8" oninput="updatePreview()">
+            </div>
+            <div class="form-group">
+              <label>Total Supply</label>
+              <input type="number" id="totalSupply" placeholder="21000000" value="1000000" oninput="updatePreview()">
+            </div>
+            <div class="form-group">
+              <label>Decimals</label>
+              <input type="number" id="decimals" placeholder="8" value="8" min="0" max="18">
+            </div>
+            <div class="form-group full">
+              <label>Token Description (optional)</label>
+              <textarea id="tokenDesc" placeholder="Describe your token's purpose..."></textarea>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="card-title" style="margin-bottom:16px;font-size:13px"><span class="dot" style="background:var(--cyan)"></span> Advanced Options</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Mintable</label>
+              <select id="mintable">
+                <option value="true">Yes (Owner can mint)</option>
+                <option value="false">No (Fixed supply)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Burnable</label>
+              <select id="burnable">
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
+            </div>
+            <div class="form-group full">
+              <label>Initial Recipient Address</label>
+              <input type="text" id="recipientAddr" placeholder="bcrt1p... (leave blank for deployer)">
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div style="display:flex;gap:12px;margin-top:4px">
+            <button class="btn btn-primary" onclick="simulateDeploy()">
+              🚀 Deploy Token
+            </button>
+            <button class="btn btn-secondary" onclick="estimateGas()">
+              ⛽ Estimate Gas
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <div class="card" id="tokenPreview">
+            <div class="card-title" style="margin-bottom:16px"><span class="dot" style="background:var(--green)"></span> Live Preview</div>
+            <div class="token-card" style="margin-bottom:16px">
+              <div class="token-icon" id="previewIcon" style="background:rgba(247,147,26,0.15);color:var(--btc);width:50px;height:50px">??</div>
+              <div class="token-info">
+                <div class="token-name" id="previewName" style="font-size:18px">Your Token</div>
+                <div class="token-symbol" id="previewSymbol">TICK</div>
+              </div>
+            </div>
+            <table>
+              <tr>
+                <td style="color:var(--text-muted)">Network</td>
+                <td style="color:var(--btc)">Bitcoin Testnet</td>
+              </tr>
+              <tr>
+                <td style="color:var(--text-muted)">Standard</td>
+                <td style="color:var(--text)">OP_20</td>
+              </tr>
+              <tr>
+                <td style="color:var(--text-muted)">Supply</td>
+                <td id="previewSupply" style="color:var(--text)">1,000,000</td>
+              </tr>
+              <tr>
+                <td style="color:var(--text-muted)">Decimals</td>
+                <td style="color:var(--text)">8</td>
+              </tr>
+              <tr>
+                <td style="color:var(--text-muted)">Runtime</td>
+                <td style="color:var(--green)">WebAssembly</td>
+              </tr>
+            </table>
+          </div>
+
+          <div class="card" id="deployStatus" style="display:none">
+            <div class="card-title" style="margin-bottom:16px"><span class="dot" style="background:var(--green)"></span> Deployment Status</div>
+            <div id="deployStatusContent"></div>
+          </div>
+
+          <div class="card">
+            <div class="card-title" style="margin-bottom:14px;font-size:13px"><span class="dot" style="background:var(--yellow)"></span> Estimated Cost</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <span style="color:var(--text-muted);font-size:13px">Deploy fee</span>
+              <span style="font-family:'Space Mono',monospace;color:var(--btc)">~0.00021 tBTC</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <span style="color:var(--text-muted);font-size:13px">Gas (sat/vB)</span>
+              <span style="font-family:'Space Mono',monospace">12 sat/vB</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="color:var(--text-muted);font-size:13px">WASM size</span>
+              <span style="font-family:'Space Mono',monospace">~14.2 KB</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INTERACT -->
+    <div id="section-interact" class="section">
+      <div class="page-header">
+        <div class="page-title">Contract <span>Interaction</span></div>
+        <div class="page-subtitle">Read and write OP_20 token contracts on Bitcoin Testnet</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title" style="margin-bottom:16px"><span class="dot"></span> Contract Address</div>
+        <div style="display:flex;gap:12px">
+          <input type="text" id="contractAddr" placeholder="bcrt1p... (OP_20 contract address)" style="flex:1">
+          <button class="btn btn-secondary" onclick="loadContract()">Load Contract</button>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab(this, 'read-tab')">📖 Read</div>
+        <div class="tab" onclick="switchTab(this, 'write-tab')">✏️ Write</div>
+        <div class="tab" onclick="switchTab(this, 'events-tab')">📡 Events</div>
+      </div>
+
+      <!-- Read Tab -->
+      <div id="read-tab">
+        <div class="two-col">
+          <div class="card">
+            <div class="card-title" style="margin-bottom:16px;font-size:13px"><span class="dot" style="background:var(--cyan)"></span> Token Metadata</div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <button class="btn btn-ghost" onclick="callContractFn('name')">🏷 name()</button>
+              <button class="btn btn-ghost" onclick="callContractFn('symbol')">🔤 symbol()</button>
+              <button class="btn btn-ghost" onclick="callContractFn('decimals')">🔢 decimals()</button>
+              <button class="btn btn-ghost" onclick="callContractFn('totalSupply')">📦 totalSupply()</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title" style="margin-bottom:16px;font-size:13px"><span class="dot" style="background:var(--green)"></span> Balance Queries</div>
+            <div class="form-group">
+              <label>Address to Query</label>
+              <input type="text" id="queryAddr" placeholder="bcrt1p...">
+            </div>
+            <button class="btn btn-ghost" onclick="callBalanceOf()" style="margin-bottom:10px;width:100%">💰 balanceOf(address)</button>
+            <div class="form-group">
+              <label>Spender Address</label>
+              <input type="text" id="spenderAddr" placeholder="bcrt1p...">
+            </div>
+            <button class="btn btn-ghost" onclick="callAllowance()" style="width:100%">✅ allowance(owner, spender)</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title" style="margin-bottom:12px"><span class="dot" style="background:var(--green)"></span> Response</div>
+          <div class="response-box" id="readResponse">// Response will appear here after calling a function...</div>
+        </div>
+      </div>
+
+      <!-- Write Tab -->
+      <div id="write-tab" style="display:none">
+        <div class="alert alert-warning">
+          ⚠ Write operations require a connected wallet and will broadcast Bitcoin transactions
+        </div>
+        <div class="two-col">
+          <div class="card">
+            <div class="card-title" style="margin-bottom:16px;font-size:13px"><span class="dot" style="background:var(--op)"></span> transfer(to, amount)</div>
+            <div class="form-group">
+              <label>Recipient</label>
+              <input type="text" id="transferTo" placeholder="bcrt1p...">
+            </div>
+            <div class="form-group">
+              <label>Amount</label>
+              <input type="number" id="transferAmt" placeholder="1000">
+            </div>
+            <button class="btn btn-primary" onclick="executeTx('transfer')">Execute Transfer</button>
+          </div>
+          <div class="card">
+            <div class="card-title" style="margin-bottom:16px;font-size:13px"><span class="dot" style="background:var(--yellow)"></span> approve(spender, amount)</div>
+            <div class="form-group">
+              <label>Spender Address</label>
+              <input type="text" id="approveSpender" placeholder="bcrt1p...">
+            </div>
+            <div class="form-group">
+              <label>Amount</label>
+              <input type="number" id="approveAmt" placeholder="1000">
+            </div>
+            <button class="btn btn-secondary" onclick="executeTx('approve')">Approve Allowance</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title" style="margin-bottom:12px"><span class="dot" style="background:var(--op)"></span> Transaction Output</div>
+          <div class="response-box" id="writeResponse">// Transaction hash will appear here after execution...</div>
+        </div>
+      </div>
+
+      <!-- Events Tab -->
+      <div id="events-tab" style="display:none">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:16px"><span class="dot" style="background:var(--cyan)"></span> Contract Events (OP_20)</div>
+          <table>
+            <thead>
+              <tr>
+                <th>Event</th>
+                <th>From</th>
+                <th>To</th>
+                <th>Amount</th>
+                <th>Block</th>
+              </tr>
+            </thead>
+            <tbody id="eventsTable">
+              <tr><td colspan="5" style="text-align:center;color:var(--text-muted)">Load a contract to see events</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- MINT / BURN -->
+    <div id="section-mint" class="section">
+      <div class="page-header">
+        <div class="page-title">Mint <span>&amp;</span> Burn</div>
+        <div class="page-subtitle">Manage token supply on Bitcoin Testnet</div>
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><span class="dot" style="background:var(--green)"></span> Mint Tokens</div>
+          </div>
+          <div class="alert alert-info">ℹ Only callable by the token owner / deployer address</div>
+          <div class="form-group">
+            <label>Contract Address</label>
+            <input type="text" id="mintContract" placeholder="bcrt1p...">
+          </div>
+          <div class="form-group">
+            <label>Recipient Address</label>
+            <input type="text" id="mintTo" placeholder="bcrt1p...">
+          </div>
+          <div class="form-group">
+            <label>Amount to Mint</label>
+            <input type="number" id="mintAmount" placeholder="100000">
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <span style="font-size:12px;color:var(--text-muted)">Current supply: <span style="color:var(--text)">1,000,000</span></span>
+            <span style="font-size:12px;color:var(--text-muted)">Max supply: <span style="color:var(--text)">21,000,000</span></span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width:4.76%"></div>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:6px;margin-bottom:16px;font-family:'Space Mono',monospace">4.76% of max supply minted</div>
+          <button class="btn btn-primary" onclick="executeMint()" style="width:100%">🪙 Mint Tokens</button>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><span class="dot" style="background:var(--red)"></span> Burn Tokens</div>
+          </div>
+          <div class="alert alert-warning">⚠ Burning is irreversible. Tokens will be permanently destroyed.</div>
+          <div class="form-group">
+            <label>Contract Address</label>
+            <input type="text" id="burnContract" placeholder="bcrt1p...">
+          </div>
+          <div class="form-group">
+            <label>Amount to Burn</label>
+            <input type="number" id="burnAmount" placeholder="10000">
+          </div>
+          <div class="form-group">
+            <label>Confirm Burn (type BURN)</label>
+            <input type="text" id="burnConfirm" placeholder="BURN">
+          </div>
+          <button class="btn btn-danger" onclick="executeBurn()" style="width:100%;margin-top:8px">🔥 Burn Tokens</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px"><span class="dot"></span> Operation Result</div>
+        <div class="response-box" id="mintBurnResponse">// Mint/Burn result will appear here...</div>
+      </div>
+    </div>
+
+    <!-- TRANSFER -->
+    <div id="section-transfer" class="section">
+      <div class="page-header">
+        <div class="page-title">Token <span>Transfer</span></div>
+        <div class="page-subtitle">Send OP_20 tokens on Bitcoin Testnet</div>
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><span class="dot"></span> Transfer Details</div>
+          </div>
+          <div class="form-group">
+            <label>Token Contract</label>
+            <select id="transferToken">
+              <option value="">Select token...</option>
+              <option value="bcrt1pqx4j3l3d3cs6lzsfc3mxh">BTK — BitToken</option>
+              <option value="bcrt1paw9m9qkj7r2lzx1abc">SAT — SatoshiToken</option>
+              <option value="bcrt1pkn3qp9wv8x5nzr3def">OPT — OPTest</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>From Address</label>
+            <input type="text" id="fromAddress" placeholder="Your address (auto-filled when connected)" style="opacity:0.6">
+          </div>
+          <div class="form-group">
+            <label>To Address</label>
+            <input type="text" id="toAddress" placeholder="bcrt1p...">
+          </div>
+          <div class="form-group">
+            <label>Amount</label>
+            <input type="number" id="sendAmount" placeholder="100">
+          </div>
+
+          <div class="divider"></div>
+
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px">
+            <span style="color:var(--text-muted)">Your balance</span>
+            <span style="font-family:'Space Mono',monospace">250,000 BTK</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:16px;font-size:13px">
+            <span style="color:var(--text-muted)">Network fee</span>
+            <span style="font-family:'Space Mono',monospace;color:var(--btc)">~0.00002 tBTC</span>
+          </div>
+
+          <button class="btn btn-primary" onclick="executeTransfer()" style="width:100%">↔ Send Tokens</button>
+        </div>
+
+        <div class="card">
+          <div class="card-title" style="margin-bottom:16px"><span class="dot" style="background:var(--cyan)"></span> Transfer Output</div>
+          <div class="response-box" id="transferResponse" style="min-height:180px">// Transfer result will appear here...</div>
+
+          <div class="divider"></div>
+
+          <div class="card-title" style="margin-bottom:12px;font-size:13px"><span class="dot" style="background:var(--yellow)"></span> transferFrom (Allowance)</div>
+          <div class="form-group">
+            <label>Token Contract</label>
+            <input type="text" id="fromContract" placeholder="bcrt1p...">
+          </div>
+          <div style="display:flex;gap:10px">
+            <div class="form-group" style="flex:1">
+              <label>Owner</label>
+              <input type="text" id="fromOwner" placeholder="bcrt1p...">
+            </div>
+            <div class="form-group" style="flex:1">
+              <label>Amount</label>
+              <input type="number" id="fromAmount" placeholder="100">
+            </div>
+          </div>
+          <button class="btn btn-secondary" onclick="executeTransferFrom()" style="width:100%">Execute transferFrom</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MY TOKENS -->
+    <div id="section-tokens" class="section">
+      <div class="page-header">
+        <div class="page-title">My <span>Tokens</span></div>
+        <div class="page-subtitle">All OP_20 tokens deployed from this wallet</div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><span class="dot"></span> Deployed Contracts</div>
+          <button class="btn btn-primary btn-sm" onclick="showSection('deploy', document.querySelectorAll('.nav-item')[1])">+ New Token</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Token</th>
+              <th>Contract Address</th>
+              <th>Supply</th>
+              <th>Decimals</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <div style="font-weight:700;color:var(--text)">BitToken</div>
+                <div style="color:var(--btc);font-size:11px">BTK</div>
+              </td>
+              <td class="tx-hash">bcrt1pqx4...c6lzsfc3mxh</td>
+              <td>1,000,000</td>
+              <td>8</td>
+              <td><span class="badge badge-success">Active</span></td>
+              <td>
+                <div style="display:flex;gap:6px">
+                  <button class="btn btn-ghost btn-sm" onclick="showSection('interact', document.querySelectorAll('.nav-item')[2])">Interact</button>
+                  <button class="btn btn-ghost btn-sm" onclick="showSection('mint', document.querySelectorAll('.nav-item')[3])">Mint</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div style="font-weight:700;color:var(--text)">SatoshiToken</div>
+                <div style="color:var(--cyan);font-size:11px">SAT</div>
+              </td>
+              <td class="tx-hash">bcrt1paw9...kj7r2lzx1abc</td>
+              <td>21,000,000</td>
+              <td>8</td>
+              <td><span class="badge badge-success">Active</span></td>
+              <td>
+                <div style="display:flex;gap:6px">
+                  <button class="btn btn-ghost btn-sm">Interact</button>
+                  <button class="btn btn-ghost btn-sm">Mint</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div style="font-weight:700;color:var(--text)">OPTest</div>
+                <div style="color:var(--green);font-size:11px">OPT</div>
+              </td>
+              <td class="tx-hash">bcrt1pkn3...wv8x5nzr3def</td>
+              <td>500,000</td>
+              <td>18</td>
+              <td><span class="badge badge-pending">Indexing</span></td>
+              <td>
+                <div style="display:flex;gap:6px">
+                  <button class="btn btn-ghost btn-sm">Interact</button>
+                  <button class="btn btn-ghost btn-sm">Mint</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- HISTORY -->
+    <div id="section-history" class="section">
+      <div class="page-header">
+        <div class="page-title">Transaction <span>History</span></div>
+        <div class="page-subtitle">All OP_NET transactions from this session</div>
+      </div>
+
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Tx Hash</th>
+              <th>Token</th>
+              <th>Amount</th>
+              <th>Block</th>
+              <th>Fee (sat)</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="historyTable">
+            <tr>
+              <td><span class="badge badge-info">Deploy</span></td>
+              <td class="tx-hash">0x3f4ab1...c2e9f8d3</td>
+              <td style="color:var(--btc)">BTK</td>
+              <td>—</td>
+              <td>2,847,391</td>
+              <td>4,820</td>
+              <td><span class="badge badge-success">Confirmed</span></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-success">Mint</span></td>
+              <td class="tx-hash">0x9e1d7f...3a4b2c9e</td>
+              <td style="color:var(--btc)">BTK</td>
+              <td>1,000,000</td>
+              <td>2,847,392</td>
+              <td>1,240</td>
+              <td><span class="badge badge-success">Confirmed</span></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-info">Deploy</span></td>
+              <td class="tx-hash">0x7c2a9d...1e5f8b0a</td>
+              <td style="color:var(--cyan)">SAT</td>
+              <td>—</td>
+              <td>2,847,398</td>
+              <td>4,820</td>
+              <td><span class="badge badge-success">Confirmed</span></td>
+            </tr>
+            <tr>
+              <td><span class="badge" style="background:rgba(255,214,10,0.1);color:var(--yellow);border:1px solid rgba(255,214,10,0.2)">Transfer</span></td>
+              <td class="tx-hash">0x1b7c4d...8e9a2f1c</td>
+              <td style="color:var(--green)">OPT</td>
+              <td>5,000</td>
+              <td>2,847,401</td>
+              <td>980</td>
+              <td><span class="badge badge-pending">Pending</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CODE EXAMPLES -->
+    <div id="section-code" class="section">
+      <div class="page-header">
+        <div class="page-title">Code <span>Examples</span></div>
+        <div class="page-subtitle">OP_NET SDK usage for Bitcoin Layer 1 token development</div>
+      </div>
+
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab(this, 'code-setup')">Setup</div>
+        <div class="tab" onclick="switchTab(this, 'code-read')">Read Contract</div>
+        <div class="tab" onclick="switchTab(this, 'code-write')">Write Contract</div>
+        <div class="tab" onclick="switchTab(this, 'code-deploy')">Deploy Token</div>
+      </div>
+
+      <div id="code-setup">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:16px"><span class="dot"></span> Install OP_NET SDK</div>
+          <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">copy</button>
+            <span class="cm"># Install the OP_NET library</span>
+            npm install opnet @btc-vision/transaction @btc-vision/bitcoin
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title" style="margin-bottom:16px"><span class="dot"></span> Initialize Provider (Testnet)</div>
+          <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">copy</button>
+<span class="kw">import</span> { JSONRpcProvider, getContract, OP_20_ABI } <span class="kw">from</span> <span class="str">'opnet'</span>;
+<span class="kw">import</span> { Address, Wallet } <span class="kw">from</span> <span class="str">'@btc-vision/transaction'</span>;
+<span class="kw">import</span> { Network } <span class="kw">from</span> <span class="str">'@btc-vision/bitcoin'</span>;
+
+<span class="cm">// Connect to OP_NET Bitcoin Testnet</span>
+<span class="kw">const</span> provider = <span class="kw">new</span> <span class="type">JSONRpcProvider</span>(
+  <span class="str">'https://testnet.opnet.org'</span>,
+  Network.TESTNET
+);
+
+<span class="cm">// Load wallet from private key or mnemonic</span>
+<span class="kw">const</span> wallet = <span class="type">Wallet</span>.<span class="fn">fromPhrase</span>(<span class="str">'your mnemonic here'</span>);
+<span class="kw">const</span> myAddress = <span class="kw">new</span> <span class="type">Address</span>(wallet.keypair.publicKey);
+
+console.<span class="fn">log</span>(<span class="str">'Connected to Bitcoin Testnet'</span>);
+console.<span class="fn">log</span>(<span class="str">'Your address:'</span>, myAddress.<span class="fn">toString</span>());
+          </div>
+        </div>
+      </div>
+
+      <div id="code-read" style="display:none">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:16px"><span class="dot" style="background:var(--cyan)"></span> Read OP_20 Token Data</div>
+          <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">copy</button>
+<span class="kw">import</span> { getContract, IOP20Contract, OP_20_ABI, JSONRpcProvider } <span class="kw">from</span> <span class="str">'opnet'</span>;
+<span class="kw">import</span> { Network } <span class="kw">from</span> <span class="str">'@btc-vision/bitcoin'</span>;
+
+<span class="kw">const</span> TOKEN_ADDRESS = <span class="str">'bcrt1plz0svv3wl05qrrv0dx8hvh5mgqc7jf3mhqgtw8jnj3l3d3cs6lzsfc3mxh'</span>;
+
+<span class="kw">const</span> token = <span class="fn">getContract</span>&lt;<span class="type">IOP20Contract</span>&gt;(
+  TOKEN_ADDRESS,
+  OP_20_ABI,
+  provider,
+  Network.TESTNET,
+  myAddress
+);
+
+<span class="cm">// Read token info</span>
+<span class="kw">const</span> name        = <span class="kw">await</span> token.<span class="fn">name</span>();
+<span class="kw">const</span> symbol      = <span class="kw">await</span> token.<span class="fn">symbol</span>();
+<span class="kw">const</span> totalSupply = <span class="kw">await</span> token.<span class="fn">totalSupply</span>();
+<span class="kw">const</span> decimals    = <span class="kw">await</span> token.<span class="fn">decimals</span>();
+<span class="kw">const</span> balance     = <span class="kw">await</span> token.<span class="fn">balanceOf</span>(myAddress);
+
+console.<span class="fn">log</span>(<span class="str">'Name:'</span>,    name.properties.name);
+console.<span class="fn">log</span>(<span class="str">'Symbol:'</span>,  symbol.properties.symbol);
+console.<span class="fn">log</span>(<span class="str">'Supply:'</span>,  totalSupply.properties.totalSupply.<span class="fn">toString</span>());
+console.<span class="fn">log</span>(<span class="str">'Balance:'</span>, balance.properties.balance.<span class="fn">toString</span>());
+          </div>
+        </div>
+      </div>
+
+      <div id="code-write" style="display:none">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:16px"><span class="dot" style="background:var(--op)"></span> Transfer Tokens</div>
+          <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">copy</button>
+<span class="kw">import</span> { TransactionParameters } <span class="kw">from</span> <span class="str">'opnet'</span>;
+
+<span class="kw">const</span> recipient = <span class="kw">new</span> <span class="type">Address</span>(recipientPublicKey);
+<span class="kw">const</span> amount = <span class="type">BigInt</span>(<span class="str">'1000000000'</span>); <span class="cm">// 10 BTK (8 decimals)</span>
+
+<span class="cm">// Build transaction parameters</span>
+<span class="kw">const</span> txParams: <span class="type">TransactionParameters</span> = {
+  signer: wallet.keypair,
+  network: Network.TESTNET,
+  priorityFee: <span class="num">100</span>n,   <span class="cm">// in satoshis</span>
+  maxFeePerByte: <span class="num">20</span>n,  <span class="cm">// sat/vByte</span>
+};
+
+<span class="cm">// Execute transfer</span>
+<span class="kw">const</span> result = <span class="kw">await</span> token.<span class="fn">transfer</span>(recipient, amount, txParams);
+
+<span class="kw">if</span> (result.success) {
+  console.<span class="fn">log</span>(<span class="str">'✅ Transfer TX:'</span>, result.transaction.txid);
+  console.<span class="fn">log</span>(<span class="str">'Block:'</span>, result.receipt.blockNumber);
+} <span class="kw">else</span> {
+  console.<span class="fn">error</span>(<span class="str">'❌ Transfer failed:'</span>, result.error);
+}
+          </div>
+        </div>
+      </div>
+
+      <div id="code-deploy" style="display:none">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:16px"><span class="dot" style="background:var(--green)"></span> Deploy OP_20 Token (AssemblyScript)</div>
+          <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">copy</button>
+<span class="cm">// contracts/MyToken.ts (AssemblyScript / WASM)</span>
+<span class="kw">import</span> { OP20 } <span class="kw">from</span> <span class="str">'@btc-vision/btc-runtime/runtime'</span>;
+
+<span class="kw">export class</span> <span class="type">MyToken</span> <span class="kw">extends</span> <span class="type">OP20</span> {
+  <span class="kw">constructor</span>() {
+    <span class="kw">super</span>(
+      <span class="num">21_000_000</span>,       <span class="cm">// max supply</span>
+      <span class="num">8</span>,                 <span class="cm">// decimals</span>
+      <span class="str">'MyToken'</span>,         <span class="cm">// name</span>
+      <span class="str">'MTK'</span>              <span class="cm">// symbol</span>
+    );
+  }
+
+  <span class="fn">onDeploy</span>(calldata: <span class="type">Calldata</span>): <span class="kw">void</span> {
+    <span class="kw">const</span> initialSupply = calldata.<span class="fn">readU256</span>();
+    <span class="kw">this</span>.<span class="fn">_mint</span>(<span class="kw">this</span>.deployer, initialSupply);
+  }
+}
+
+<span class="cm">// --- Deploy from Node.js ---</span>
+<span class="kw">import</span> { ContractDeployer } <span class="kw">from</span> <span class="str">'opnet'</span>;
+<span class="kw">import</span> wasmBytecode <span class="kw">from</span> <span class="str">'./MyToken.wasm'</span>;
+
+<span class="kw">const</span> deployer = <span class="kw">new</span> <span class="type">ContractDeployer</span>(provider, wallet, Network.TESTNET);
+<span class="kw">const</span> contractAddress = <span class="kw">await</span> deployer.<span class="fn">deploy</span>(wasmBytecode, {
+  calldata: encodeInitialSupply(<span class="num">1_000_000</span>),
+  fee: <span class="num">20</span>n,
+});
+
+console.<span class="fn">log</span>(<span class="str">'✅ Token deployed:'</span>, contractAddress);
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FAUCET -->
+    <div id="section-faucet" class="section">
+      <div class="page-header">
+        <div class="page-title">Testnet <span>Faucet</span></div>
+        <div class="page-subtitle">Claim free tBTC for testing on Bitcoin Testnet</div>
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:16px"><span class="dot" style="background:var(--btc)"></span> Claim tBTC</div>
+          <div class="alert alert-info">ℹ Testnet Bitcoin has no real value. Claims reset every 24 hours.</div>
+          <div class="form-group">
+            <label>Your Address</label>
+            <input type="text" id="faucetAddress" placeholder="bcrt1p... or tb1p...">
+          </div>
+          <div class="form-group">
+            <label>Amount</label>
+            <select id="faucetAmount">
+              <option value="0.001">0.001 tBTC</option>
+              <option value="0.01" selected>0.01 tBTC</option>
+              <option value="0.1">0.1 tBTC</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="claimFaucet()" style="width:100%;margin-top:8px">
+            🚰 Claim from Faucet
+          </button>
+
+          <div class="divider"></div>
+
+          <div style="font-size:12px;color:var(--text-muted);font-family:'Space Mono',monospace">
+            Official faucet: <a href="https://faucet.opnet.org" target="_blank" style="color:var(--cyan);text-decoration:none">faucet.opnet.org</a><br>
+            Points dashboard: <a href="https://opnet.org/points" target="_blank" style="color:var(--cyan);text-decoration:none">opnet.org/points</a>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title" style="margin-bottom:16px"><span class="dot" style="background:var(--green)"></span> Faucet Status</div>
+          <div class="response-box" id="faucetResponse" style="min-height:120px">// Faucet transaction will appear here...</div>
+
+          <div class="divider"></div>
+
+          <div class="card-title" style="margin-bottom:12px;font-size:13px"><span class="dot" style="background:var(--yellow)"></span> Testnet Resources</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <a href="https://opnet.org" target="_blank" style="color:var(--text-dim);text-decoration:none;font-family:'Space Mono',monospace;font-size:12px;padding:8px;background:var(--surface2);border-radius:6px;border:1px solid var(--border)">⬡ opnet.org — Main dashboard</a>
+            <a href="https://docs.opnet.org" target="_blank" style="color:var(--text-dim);text-decoration:none;font-family:'Space Mono',monospace;font-size:12px;padding:8px;background:var(--surface2);border-radius:6px;border:1px solid var(--border)">📖 docs.opnet.org — Documentation</a>
+            <a href="https://motoswap.org" target="_blank" style="color:var(--text-dim);text-decoration:none;font-family:'Space Mono',monospace;font-size:12px;padding:8px;background:var(--surface2);border-radius:6px;border:1px solid var(--border)">🔄 motoswap.org — DEX on OP_NET</a>
+            <a href="https://farm.motoswap.org" target="_blank" style="color:var(--text-dim);text-decoration:none;font-family:'Space Mono',monospace;font-size:12px;padding:8px;background:var(--surface2);border-radius:6px;border:1px solid var(--border)">🌾 farm.motoswap.org — Staking</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</main>
+
+</div><!-- /app -->
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ===== STATE =====
+let walletConnected = false;
+let walletAddress = '';
+let currentSection = 'dashboard';
+
+// Simulated block height
+let blockHeight = 2847401;
+
+// ===== WALLET =====
+function toggleWallet() {
+  if (walletConnected) {
+    walletConnected = false;
+    walletAddress = '';
+    document.getElementById('walletBtn').className = 'wallet-btn';
+    document.getElementById('walletBtn').textContent = '🔗 Connect Wallet';
+    document.getElementById('btcBalance').textContent = '—';
+    showToast('Wallet disconnected', 'info');
+  } else {
+    // Simulate wallet connection
+    walletConnected = true;
+    walletAddress = 'bcrt1pqx4...j3mxh';
+    document.getElementById('walletBtn').className = 'wallet-btn connected';
+    document.getElementById('walletBtn').textContent = '✓ ' + walletAddress;
+    document.getElementById('btcBalance').textContent = '0.0482 tBTC';
+    document.getElementById('fromAddress').value = 'bcrt1pqx4d8hvh5mgqc7jf3mhqgtw8jnj3l3d3cs6lzsfc3mxh';
+    showToast('OP_WALLET connected · Bitcoin Testnet', 'success');
+  }
+}
+
+// ===== NAVIGATION =====
+function showSection(id, navItem) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('section-' + id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (navItem) navItem.classList.add('active');
+  currentSection = id;
+}
+
+// ===== TABS =====
+function switchTab(tabEl, contentId) {
+  const parent = tabEl.parentElement;
+  parent.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  tabEl.classList.add('active');
+
+  // Find sibling content divs by looking at common parent
+  const container = parent.nextElementSibling ? parent.parentElement : parent.parentElement;
+  const allTabContents = ['read-tab', 'write-tab', 'events-tab',
+    'code-setup', 'code-read', 'code-write', 'code-deploy'];
+  allTabContents.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  const target = document.getElementById(contentId);
+  if (target) target.style.display = 'block';
+}
+
+// ===== LIVE PREVIEW =====
+function updatePreview() {
+  const name = document.getElementById('tokenName').value || 'Your Token';
+  const symbol = document.getElementById('tokenSymbol').value || 'TICK';
+  const supply = parseInt(document.getElementById('totalSupply').value || '0');
+
+  document.getElementById('previewName').textContent = name;
+  document.getElementById('previewSymbol').textContent = symbol;
+  document.getElementById('previewIcon').textContent = symbol.substring(0,2).toUpperCase() || '??';
+  document.getElementById('previewSupply').textContent = supply.toLocaleString();
+}
+
+// ===== DEPLOY =====
+async function simulateDeploy() {
+  if (!walletConnected) {
+    showToast('Connect your OP_WALLET first', 'error');
+    return;
+  }
+
+  const name = document.getElementById('tokenName').value;
+  const symbol = document.getElementById('tokenSymbol').value;
+  const supply = document.getElementById('totalSupply').value;
+
+  if (!name || !symbol || !supply) {
+    showToast('Fill in token name, symbol, and supply', 'error');
+    return;
+  }
+
+  const statusCard = document.getElementById('deployStatus');
+  statusCard.style.display = 'block';
+
+  const steps = [
+    { msg: '🔄 Compiling WASM bytecode...', delay: 800 },
+    { msg: '📦 Building Bitcoin transaction...', delay: 1400 },
+    { msg: '✍ Signing with OP_WALLET...', delay: 1800 },
+    { msg: '📡 Broadcasting to Bitcoin Testnet...', delay: 2400 },
+    { msg: '⛏ Waiting for confirmation...', delay: 3200 },
+  ];
+
+  let html = '<div style="display:flex;flex-direction:column;gap:8px">';
+  document.getElementById('deployStatusContent').innerHTML = html + '<div style="color:var(--text-muted);font-family:\'Space Mono\',monospace;font-size:12px">Starting deployment...</div></div>';
+
+  for (let i = 0; i < steps.length; i++) {
+    await new Promise(r => setTimeout(r, steps[i].delay - (i > 0 ? steps[i-1].delay : 0)));
+    html += `<div style="color:var(--yellow);font-family:'Space Mono',monospace;font-size:12px">${steps[i].msg}</div>`;
+    document.getElementById('deployStatusContent').innerHTML = html + '</div>';
+  }
+
+  await new Promise(r => setTimeout(r, 600));
+
+  const fakeAddr = 'bcrt1p' + Math.random().toString(36).substring(2, 20) + 'zn4a8mf';
+  const fakeTxid = '0x' + [...Array(40)].map(() => Math.floor(Math.random()*16).toString(16)).join('');
+
+  html += `
+    <div class="divider"></div>
+    <div style="background:rgba(0,210,106,0.08);border:1px solid rgba(0,210,106,0.2);border-radius:8px;padding:12px;margin-top:8px">
+      <div style="color:var(--green);font-weight:700;margin-bottom:10px">✅ Token Deployed Successfully!</div>
+      <div style="font-family:'Space Mono',monospace;font-size:11px;color:var(--text-dim)">
+        <div style="margin-bottom:4px">Name: <span style="color:var(--text)">${name} (${symbol})</span></div>
+        <div style="margin-bottom:4px">Contract: <span style="color:var(--cyan)">${fakeAddr}</span></div>
+        <div style="margin-bottom:4px">TX: <span style="color:var(--cyan)">${fakeTxid}</span></div>
+        <div>Block: <span style="color:var(--btc)">${blockHeight + 1}</span></div>
+      </div>
+    </div>
+  `;
+  document.getElementById('deployStatusContent').innerHTML = html + '</div>';
+  document.getElementById('tokenCount').textContent = parseInt(document.getElementById('tokenCount').textContent) + 1;
+  showToast(`${symbol} deployed to Bitcoin Testnet!`, 'success');
+}
+
+async function estimateGas() {
+  showToast('Estimated: ~0.00021 tBTC (~4,820 sats)', 'info');
+}
+
+// ===== CONTRACT INTERACTION =====
+function loadContract() {
+  const addr = document.getElementById('contractAddr').value;
+  if (!addr) { showToast('Enter a contract address', 'error'); return; }
+  showToast('Contract loaded · Ready to interact', 'success');
+  loadEvents();
+}
+
+async function callContractFn(fn) {
+  await simulateDelay(600);
+  const responses = {
+    name: '{\n  "result": {\n    "name": "BitToken"\n  },\n  "gasUsed": 3200,\n  "block": ' + blockHeight + '\n}',
+    symbol: '{\n  "result": {\n    "symbol": "BTK"\n  },\n  "gasUsed": 2800,\n  "block": ' + blockHeight + '\n}',
+    decimals: '{\n  "result": {\n    "decimals": 8\n  },\n  "gasUsed": 2100,\n  "block": ' + blockHeight + '\n}',
+    totalSupply: '{\n  "result": {\n    "totalSupply": "100000000000000"\n    // 1,000,000 BTK (8 decimals)\n  },\n  "gasUsed": 3500,\n  "block": ' + blockHeight + '\n}',
+  };
+  document.getElementById('readResponse').textContent = responses[fn] || '{}';
+  showToast(fn + '() called successfully', 'success');
+}
+
+async function callBalanceOf() {
+  const addr = document.getElementById('queryAddr').value || 'bcrt1pqx4...j3mxh';
+  await simulateDelay(700);
+  document.getElementById('readResponse').textContent =
+    '{\n  "result": {\n    "balance": "25000000000000",\n    "formatted": "250,000.00000000 BTK",\n    "address": "' + addr + '"\n  },\n  "gasUsed": 4200,\n  "block": ' + blockHeight + '\n}';
+  showToast('balanceOf() called', 'success');
+}
+
+async function callAllowance() {
+  await simulateDelay(700);
+  document.getElementById('readResponse').textContent =
+    '{\n  "result": {\n    "allowance": "0",\n    "formatted": "0 BTK"\n  },\n  "gasUsed": 3900,\n  "block": ' + blockHeight + '\n}';
+  showToast('allowance() called', 'success');
+}
+
+async function executeTx(type) {
+  if (!walletConnected) { showToast('Connect wallet first', 'error'); return; }
+  await simulateDelay(1200);
+  const txid = '0x' + [...Array(40)].map(() => Math.floor(Math.random()*16).toString(16)).join('');
+  document.getElementById('writeResponse').textContent =
+    '{\n  "success": true,\n  "txid": "' + txid + '",\n  "type": "' + type + '",\n  "block": ' + (blockHeight + 1) + ',\n  "gasUsed": 12400,\n  "fee": "1240 sats"\n}';
+  showToast(type + ' transaction broadcast!', 'success');
+}
+
+function loadEvents() {
+  const rows = [
+    ['Transfer', 'bcrt1pqx4...j3mxh', 'bcrt1paw9...1abc', '10,000', blockHeight - 2],
+    ['Transfer', 'bcrt1pkn3...3def', 'bcrt1pqx4...j3mxh', '5,000', blockHeight - 5],
+    ['Approval', 'bcrt1pqx4...j3mxh', 'bcrt1pmot...ork', '50,000', blockHeight - 8],
+    ['Mint', '0x0000...0000', 'bcrt1pqx4...j3mxh', '1,000,000', blockHeight - 100],
+  ];
+
+  document.getElementById('eventsTable').innerHTML = rows.map(r =>
+    `<tr>
+      <td><span class="badge badge-info">${r[0]}</span></td>
+      <td class="tx-hash" style="max-width:120px;overflow:hidden;text-overflow:ellipsis">${r[1]}</td>
+      <td class="tx-hash" style="max-width:120px;overflow:hidden;text-overflow:ellipsis">${r[2]}</td>
+      <td>${r[3]}</td>
+      <td>${r[4]}</td>
+    </tr>`
+  ).join('');
+}
+
+// ===== MINT / BURN =====
+async function executeMint() {
+  if (!walletConnected) { showToast('Connect wallet first', 'error'); return; }
+  const amt = document.getElementById('mintAmount').value;
+  if (!amt) { showToast('Enter amount to mint', 'error'); return; }
+  await simulateDelay(1500);
+  const txid = '0x' + [...Array(40)].map(() => Math.floor(Math.random()*16).toString(16)).join('');
+  document.getElementById('mintBurnResponse').textContent =
+    '✅ MINT SUCCESSFUL\n\n{\n  "txid": "' + txid + '",\n  "amount": "' + parseInt(amt).toLocaleString() + '",\n  "to": "' + (document.getElementById('mintTo').value || 'bcrt1pqx4...j3mxh') + '",\n  "newSupply": "' + (1000000 + parseInt(amt)).toLocaleString() + '",\n  "block": ' + (blockHeight + 1) + '\n}';
+  showToast(parseInt(amt).toLocaleString() + ' tokens minted!', 'success');
+}
+
+async function executeBurn() {
+  if (!walletConnected) { showToast('Connect wallet first', 'error'); return; }
+  const confirm = document.getElementById('burnConfirm').value;
+  if (confirm !== 'BURN') { showToast('Type BURN to confirm', 'error'); return; }
+  const amt = document.getElementById('burnAmount').value;
+  await simulateDelay(1200);
+  document.getElementById('mintBurnResponse').textContent =
+    '🔥 BURN SUCCESSFUL\n\n{\n  "destroyed": "' + parseInt(amt).toLocaleString() + '",\n  "newSupply": "' + (1000000 - parseInt(amt || 0)).toLocaleString() + '",\n  "block": ' + (blockHeight + 1) + '\n}';
+  showToast(parseInt(amt).toLocaleString() + ' tokens burned permanently', 'info');
+  document.getElementById('burnConfirm').value = '';
+}
+
+// ===== TRANSFER =====
+async function executeTransfer() {
+  if (!walletConnected) { showToast('Connect wallet first', 'error'); return; }
+  const to = document.getElementById('toAddress').value;
+  const amt = document.getElementById('sendAmount').value;
+  if (!to || !amt) { showToast('Fill in recipient and amount', 'error'); return; }
+  await simulateDelay(1400);
+  const txid = '0x' + [...Array(40)].map(() => Math.floor(Math.random()*16).toString(16)).join('');
+  document.getElementById('transferResponse').textContent =
+    '✅ TRANSFER SENT\n\n{\n  "txid": "' + txid + '",\n  "to": "' + to + '",\n  "amount": "' + parseInt(amt).toLocaleString() + '",\n  "fee": "980 sats",\n  "block": ' + (blockHeight + 1) + ',\n  "confirmations": 0\n}';
+  showToast('Transfer broadcast to Bitcoin Testnet!', 'success');
+}
+
+async function executeTransferFrom() {
+  if (!walletConnected) { showToast('Connect wallet first', 'error'); return; }
+  await simulateDelay(1200);
+  showToast('transferFrom executed successfully', 'success');
+}
+
+// ===== FAUCET =====
+async function claimFaucet() {
+  const addr = document.getElementById('faucetAddress').value;
+  if (!addr) { showToast('Enter your Bitcoin Testnet address', 'error'); return; }
+  await simulateDelay(2000);
+  const txid = '0x' + [...Array(40)].map(() => Math.floor(Math.random()*16).toString(16)).join('');
+  const amt = document.getElementById('faucetAmount').value;
+  document.getElementById('faucetResponse').textContent =
+    '✅ FAUCET CLAIM SUCCESS\n\n{\n  "address": "' + addr + '",\n  "amount": "' + amt + ' tBTC",\n  "txid": "' + txid + '",\n  "nextClaim": "24 hours"\n}\n\n// Visit faucet.opnet.org for official faucet';
+  showToast(amt + ' tBTC sent to your address!', 'success');
+}
+
+// ===== COPY CODE =====
+function copyCode(btn) {
+  const block = btn.parentElement;
+  const text = block.innerText.replace('copy', '').trim();
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'copied!';
+    setTimeout(() => btn.textContent = 'copy', 2000);
+  });
+}
+
+// ===== TOAST =====
+function showToast(msg, type = 'info') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  const icons = { success: '✓', error: '✗', info: 'ℹ' };
+  toast.innerHTML = `<span>${icons[type] || 'ℹ'}</span> ${msg}`;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(100px)';
+    toast.style.transition = 'all 0.3s';
+    setTimeout(() => toast.remove(), 300);
+  }, 3500);
+}
+
+// ===== UTILS =====
+function simulateDelay(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+// ===== LIVE STATS =====
+setInterval(() => {
+  blockHeight += Math.random() > 0.9 ? 1 : 0;
+  document.getElementById('blockHeight').textContent = blockHeight.toLocaleString();
+  document.getElementById('blockChange').textContent = '~10min avg';
+}, 3000);
+
+// Gas fluctuation
+setInterval(() => {
+  const gas = 10 + Math.floor(Math.random() * 8);
+  document.getElementById('gasPrice').textContent = gas;
+}, 8000);
+
+// Initial block height display
+document.getElementById('blockHeight').textContent = blockHeight.toLocaleString();
+document.getElementById('blockChange').textContent = '~10min avg';
+</script>
+</body>
+</html>
